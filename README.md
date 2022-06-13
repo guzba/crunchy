@@ -27,29 +27,29 @@ Runnable examples using Scrutiny can be found in the [examples/](https://github.
 Here is a basic example, simply computing the CRC-32 of a string:
 
 ```nim
-  import scrutiny
+import scrutiny
 
-  let data = "The quick brown fox jumps over the lazy dog"
-  echo crc32(data)
+let data = "The quick brown fox jumps over the lazy dog"
+echo crc32(data)
 ```
 
 Now, lets say you want to compute the CRC-32 of a file. Many approaches are possible, but lets look at these two.
 
 First, the easy way. Just read the file into memory and compute:
 ```nim
-  import scrutiny
+import scrutiny
 
-  let data = readFile("tests/data/zlib_rfc.html")
-  echo crc32(data)
+let data = readFile("tests/data/zlib_rfc.html")
+echo crc32(data)
 ```
 
 Alternatively, to avoid copying the file, memory-map the file and compute instead:
 ```nim
-  import scrutiny, std/memfiles
+import scrutiny, std/memfiles
 
-  var memFile = memfiles.open("tests/data/zlib_rfc.html")
-  echo crc32(memFile.mem, memFile.size)
-  memFile.close()
+var memFile = memfiles.open("tests/data/zlib_rfc.html")
+echo crc32(memFile.mem, memFile.size)
+memFile.close()
 ```
 
 Memory-mapping the file is great if the file is very large or you want to avoid copying a large file's contents. This uses Scrutiny's pointer + len API.
