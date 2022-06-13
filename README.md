@@ -16,7 +16,7 @@ Function | Scalar | SIMD: | amd64 | arm64
 ---       | ---   | ---   | ---   | ---:
 CRC-32    | ✅   |       |  ✅   | ⛔
 CRC-32C   | ⛔   |       |  ✅   | ⛔
-ADLER-32  | ✅   |       |  ⛔   | ⛔
+Adler-32  | ✅   |       |  ⛔   | ⛔
 
 Scrutiny is a new repo so keep an eye on releases for more functions and SIMD optimization.
 
