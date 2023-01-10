@@ -1,3 +1,6 @@
+when defined(release):
+  {.push checks: off.}
+
 when defined(amd64):
   import nimsimd/sse41, nimsimd/pclmulqdq
 
@@ -120,3 +123,34 @@ when defined(amd64):
     x1 = mm_xor_si128(x1, x2)
 
     cast[uint32](mm_extract_epi32(x1, 1))
+
+elif defined(arm64):
+  func crc32b(crc: uint32, v: uint8): uint32 {.importc: "__builtin_arm_crc32b", nodecl.}
+  func crc32d(crc: uint32, v: uint64): uint32 {.importc: "__builtin_arm_crc32d", nodecl.}
+
+  proc crc32_armv8a_crypto*(src: pointer, len: int): uint32 =
+    let src = cast[ptr UncheckedArray[uint8]](src)
+
+    var pos = 0
+
+    result = not result
+
+    # Align
+    while pos < len and (cast[uint](src[pos].addr) and 7) != 0:
+      result = crc32b(result, src[pos])
+      inc pos
+
+    while pos + 8 <= len:
+      var tmp: uint64
+      copyMem(tmp.addr, src[pos].addr, 8)
+      result = crc32d(result, tmp)
+      pos += 8
+
+    while pos < len:
+      result = crc32b(result, src[pos])
+      inc pos
+
+    result = not result
+
+when defined(release):
+  {.pop.}

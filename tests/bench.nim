@@ -1,4 +1,4 @@
-import benchy, scrutiny, std/random
+import benchy, crunchy, std/random
 
 randomize()
 

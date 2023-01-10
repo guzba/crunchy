@@ -1,4 +1,4 @@
-import flatty/binny, internal, nimsimd/runtimecheck
+import internal, nimsimd/runtimecheck
 
 when allowSimd:
   import crc32_simd
@@ -33,9 +33,10 @@ proc crc32(src: pointer, len: int, crc32: uint32): uint32 =
 
   var i: int
   for _ in 0 ..< len div 8:
-    let
-      one = src.readUint32(i) xor result
-      two = src.readUint32(i + 4)
+    var one, two: uint32
+    copyMem(one.addr, src[i].addr, 4)
+    copyMem(two.addr, src[i + 4].addr, 4)
+    one = one xor result
     result =
       crcTables[7][one and 255] xor
       crcTables[6][(one shr 8) and 255] xor
@@ -50,9 +51,6 @@ proc crc32(src: pointer, len: int, crc32: uint32): uint32 =
   for j in i ..< len:
     result = crcTables[0][(result xor src[j]) and 255] xor (result shr 8)
 
-when defined(release):
-  {.pop.}
-
 proc crc32*(src: pointer, len: int): uint32 =
   let src = cast[ptr UncheckedArray[uint8]](src)
 
@@ -64,8 +62,19 @@ proc crc32*(src: pointer, len: int): uint32 =
         let simdLen = (len div 16) * 16 # Multiple of 16
         result = not crc32_sse41_pcmul(src[0].addr, simdLen, not result)
         pos += simdLen
+    elif defined(arm64) and defined(macosx): # M1 has CRC32*, Pi 3, 4 does not
+      return crc32_armv8a_crypto(src, len)
 
   result = not crc32(src[pos].addr, len - pos, not result)
 
-proc crc32*(src: string): uint32 {.inline.} =
-  crc32(src.cstring, src.len)
+proc crc32*(data: openarray[byte]): uint32 =
+  if data.len <= 0:
+    crc32(nil, 0)
+  else:
+    crc32(data[0].unsafeAddr, data.len)
+
+proc crc32*(data: string): uint32 {.inline.} =
+  crc32(data.cstring, data.len)
+
+when defined(release):
+  {.pop.}

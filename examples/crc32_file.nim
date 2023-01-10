@@ -1,4 +1,4 @@
-import scrutiny, std/memfiles
+import crunchy, std/memfiles
 
 block:
   # Just read the file into memory and compute the CRC-32. Easy and perfect

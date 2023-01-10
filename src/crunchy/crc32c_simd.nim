@@ -1,3 +1,6 @@
+when defined(release):
+  {.push checks: off.}
+
 when defined(amd64):
   import nimsimd/sse42
 
@@ -32,3 +35,6 @@ when defined(amd64):
       result = mm_crc32_u8(result, src[i])
 
     result = not result
+
+when defined(release):
+  {.pop.}
