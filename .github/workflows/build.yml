@@ -16,6 +16,7 @@ jobs:
       with:
         nim-version: ${{ matrix.nim-version }}
         repo-token: ${{ secrets.GITHUB_TOKEN }}
+    - run: nimble test -d:release -d:crunchyNoSimd -y
     - run: nimble test -d:release -y
     - run: nimble test --gc:orc -d:release -d:crunchyNoSimd -y
     - run: nimble test --gc:orc -d:release -y
