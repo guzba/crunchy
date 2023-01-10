@@ -1,4 +1,4 @@
-import crunchy/crc32c
+import crunchy/internal, crunchy/crc32c
 
 const testCases = [
   ("", 0x00000000'u32),
@@ -9,9 +9,11 @@ const testCases = [
   ("campfire", 0xB5B76905'u32)
 ]
 
-for (s, v) in testCases:
-  doAssert crc32c(s) == v
+when allowSimd:
 
-block:
-  let data = readFile("tests/data/zlib_rfc.html")
-  doAssert crc32c(data) == 1110169936'u32
+  for (s, v) in testCases:
+    doAssert crc32c(s) == v
+
+  block:
+    let data = readFile("tests/data/zlib_rfc.html")
+    doAssert crc32c(data) == 1110169936'u32
