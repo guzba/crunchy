@@ -30,14 +30,15 @@ when allowSimd:
 when defined(release):
   {.push checks: off.}
 
-proc sha256*(s: string): array[32, uint8] =
-  var data = s
-  data.add 0b10000000.char
-  while data.len mod 64 != 56:
-    data.add 0.char
-  data.setLen(data.len + 8)
-  var L = s.len.uint64 * 8
-  swapEndian64(data[data.len - 8].addr, L.addr)
+proc sha256*(data: string): array[32, uint8] =
+  # This needs a pointer + len implementation that avoids copying the entire input
+  var data2 = data
+  data2.add 0b10000000.char
+  while data2.len mod 64 != 56:
+    data2.add 0.char
+  data2.setLen(data2.len + 8)
+  var L = data.len.uint64 * 8
+  swapEndian64(data2[data2.len - 8].addr, L.addr)
 
   var state = [
     0x6a09e667'u32, 0xbb67ae85'u32, 0x3c6ef372'u32, 0xa54ff53a'u32,
@@ -47,7 +48,7 @@ proc sha256*(s: string): array[32, uint8] =
   var usedIntrinsics: bool
   when allowSimd and defined(amd64):
     if canUseIntrinsics:
-      x64sha256(state, data)
+      x64sha256(state, data2)
       usedIntrinsics = true
 
   if not usedIntrinsics:
@@ -55,12 +56,12 @@ proc sha256*(s: string): array[32, uint8] =
     var
       pos: int
       w: array[64, uint32]
-    for _ in 0 ..< data.len div 64:
+    for _ in 0 ..< data2.len div 64:
       # Copy 64 bytes (16 uint32) into w from data
       # This cannot just be a copyMem due to byte ordering
       for i in 0 ..< 16:
         var value: uint32
-        swapEndian32(value.addr, data[pos + i * 4].addr)
+        swapEndian32(value.addr, data2[pos + i * 4].addr)
         w[i] = value
 
       for i in 16 ..< 64:

@@ -1,4 +1,4 @@
-import benchy, crunchy, std/random
+import benchy, crunchy, crunchy/internal, std/random
 
 randomize()
 
@@ -9,8 +9,12 @@ for c in data.mitems:
 timeIt "crc32":
   discard crc32(data)
 
-timeIt "crc32c":
-  discard crc32c(data)
+when allowSimd:
+  timeIt "crc32c":
+    discard crc32c(data)
 
 timeIt "adler32":
   discard adler32(data)
+
+timeIt "sha256":
+  discard sha256(data)
