@@ -42,5 +42,5 @@ block:
   doAssert crc32(data) == 0x414FA339
 
 block:
-  let data = readFile("tests/data/zlib_rfc.html")
+  let data = readFile("tests/data/zlib_rfc")
   doAssert crc32(data) == 705663465
