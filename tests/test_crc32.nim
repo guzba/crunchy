@@ -43,4 +43,5 @@ block:
 
 block:
   let data = readFile("tests/data/zlib_rfc")
+  echo crc32(data)
   doAssert crc32(data) == 705663465'u32
