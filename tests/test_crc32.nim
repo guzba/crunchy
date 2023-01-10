@@ -35,7 +35,7 @@ for (s, v) in testCases:
 
 block:
   let data = "012345678901234567890123"
-  doAssert crc32(data) == 560935461
+  doAssert crc32(data) == 560935461'u32
 
 block:
   let data = "The quick brown fox jumps over the lazy dog"
@@ -43,4 +43,4 @@ block:
 
 block:
   let data = readFile("tests/data/zlib_rfc")
-  doAssert crc32(data) == 705663465
+  doAssert crc32(data) == 705663465'u32
