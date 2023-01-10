@@ -47,7 +47,7 @@ First, the easy way. Just read the file into memory and compute:
 ```nim
 import crunchy
 
-let data = readFile("tests/data/zlib_rfc")
+let data = readFile("tests/data/zlib.rfc")
 echo crc32(data)
 ```
 
@@ -55,7 +55,7 @@ Alternatively, to avoid copying the file, memory-map the file and compute instea
 ```nim
 import crunchy, std/memfiles
 
-var memFile = memfiles.open("tests/data/zlib_rfc")
+var memFile = memfiles.open("tests/data/zlib.rfc")
 echo crc32(memFile.mem, memFile.size)
 memFile.close()
 ```
