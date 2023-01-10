@@ -56,14 +56,14 @@ proc crc32*(src: pointer, len: int): uint32 =
 
   var pos: int
 
-  # when allowSimd:
-  #   when defined(amd64):
-  #     if len >= 64 and checkInstructionSets({SSE41, PCLMULQDQ}):
-  #       let simdLen = (len div 16) * 16 # Multiple of 16
-  #       result = not crc32_sse41_pcmul(src[0].addr, simdLen, not result)
-  #       pos += simdLen
-  #   elif defined(arm64) and defined(macosx): # M1 has CRC32*, Pi 3, 4 does not
-  #     return crc32_armv8a_crypto(src, len)
+  when allowSimd:
+    when defined(amd64):
+      if len >= 64 and checkInstructionSets({SSE41, PCLMULQDQ}):
+        let simdLen = (len div 16) * 16 # Multiple of 16
+        result = not crc32_sse41_pcmul(src[0].addr, simdLen, not result)
+        pos += simdLen
+    elif defined(arm64) and defined(macosx): # M1 has CRC32*, Pi 3, 4 does not
+      return crc32_armv8a_crypto(src, len)
 
   result = not crc32(src[pos].addr, len - pos, not result)
 

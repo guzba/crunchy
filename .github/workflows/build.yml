@@ -6,7 +6,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        nim-version: ['stable']
+        nim-version: ['1.4.x', 'stable']
 
     runs-on: ${{ matrix.os }}
 
@@ -16,7 +16,7 @@ jobs:
       with:
         nim-version: ${{ matrix.nim-version }}
         repo-token: ${{ secrets.GITHUB_TOKEN }}
-    # - run: nimble test -d:release -d:crunchyNoSimd -y
-    # - run: nimble test -d:release -y
+    - run: nimble test -d:release -d:crunchyNoSimd -y
+    - run: nimble test -d:release -y
     - run: nimble test --gc:orc -d:release -d:crunchyNoSimd -y
     - run: nimble test --gc:orc -d:release -y
