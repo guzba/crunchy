@@ -8,7 +8,7 @@
 
 ## About
 
-Crunchy provides pure Nim implementations of common hashes and data integrity checks (cyclic redundancy checks and checksums). These implementations are intende dto be high-performance, including amd64 and arm64 SIMD implementations or using instruction set intrinsics.
+Crunchy provides pure Nim implementations of common hashes and data integrity checks (cyclic redundancy checks and checksums). These implementations are intended to be high-performance, including amd64 and arm64 SIMD implementations or using instruction set intrinsics.
 
 Function | Scalar | SIMD: | amd64 | arm64
 ---       | ---   | ---   | ---   | ---:
