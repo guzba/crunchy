@@ -13,5 +13,5 @@ for (s, v) in testCases:
   doAssert crc32c(s) == v
 
 block:
-  let data = readFile("tests/data/zlib_rfc")
+  let data = readFile("tests/data/zlib_rfc.html")
   doAssert crc32c(data) == 1110169936'u32
