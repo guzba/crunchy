@@ -8,9 +8,7 @@
 
 ## About
 
-Crunchy provides pure Nim implementations of common data integrity checks (cyclic redundancy checks and checksums). These implementations are tuned for performance, including amd64 and arm64 SIMD where possible.
-
-In addition to pleasant and safe Nim typed APIs, Crunchy also has optional pointer + len APIs. These enable zero-copy data integrity checks.
+Crunchy provides pure Nim implementations of common hashes and data integrity checks (cyclic redundancy checks and checksums). These implementations are intende dto be high-performance, including amd64 and arm64 SIMD implementations or using instruction set intrinsics.
 
 Function | Scalar | SIMD: | amd64 | arm64
 ---       | ---   | ---   | ---   | ---:
@@ -25,7 +23,16 @@ Crunchy is a new repo so keep an eye on releases for more functions and SIMD opt
 
 Runnable examples using Crunchy can be found in the [examples/](https://github.com/guzba/crunchy/blob/master/examples) folder.
 
-Here is a basic example, simply computing the CRC-32 of a string:
+Here is a basic example that prints the hex-encoded SHA-256 of a string:
+
+```nim
+import crunchy
+
+let data = "The quick brown fox jumps over the lazy dog"
+echo sha256(data).toHex()
+```
+
+Or calculating the CRC-32 of a string:
 
 ```nim
 import crunchy
@@ -34,7 +41,7 @@ let data = "The quick brown fox jumps over the lazy dog"
 echo crc32(data)
 ```
 
-Now, lets say you want to compute the CRC-32 of a file. Many approaches are possible, but lets look at these two.
+Now, lets say you want to compute the CRC-32 of a file. Many approaches are possible, but lets look at these two:
 
 First, the easy way. Just read the file into memory and compute:
 ```nim
