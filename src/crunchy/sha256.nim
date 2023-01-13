@@ -30,14 +30,18 @@ when allowSimd:
 when defined(release):
   {.push checks: off.}
 
-proc sha256*(data: string): array[32, uint8] =
-  # This needs a pointer + len implementation that avoids copying the entire input
-  var data2 = data
+proc sha256*(src: pointer, len: int): array[32, uint8] =
+  # This needs a pointer + len implementation that avoids copying the input
+  var data2: string
+  if len > 0:
+    data2.setLen(len)
+    copyMem(data2[0].addr, src, len)
+
   data2.add 0b10000000.char
   while data2.len mod 64 != 56:
     data2.add 0.char
   data2.setLen(data2.len + 8)
-  var L = data.len.uint64 * 8
+  var L = len.uint64 * 8
   swapEndian64(data2[data2.len - 8].addr, L.addr)
 
   var state = [
@@ -120,6 +124,15 @@ proc sha256*(data: string): array[32, uint8] =
 
   for i in 0 ..< state.len:
     swapEndian32(result[i * 4].addr, state[i].addr)
+
+proc sha256*(data: openarray[byte]): array[32, uint8] {.inline.} =
+  if data.len <= 0:
+    sha256(nil, 0)
+  else:
+    sha256(data[0].unsafeAddr, data.len)
+
+proc sha256*(data: string): array[32, uint8] {.inline.} =
+  sha256(data.cstring, data.len)
 
 proc toHex*(a: array[32, uint8]): string =
   result = newStringOfCap(64)
