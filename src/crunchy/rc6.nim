@@ -45,6 +45,29 @@ proc rc6EncryptBlock(S: array[44, uint32], src: pointer): array[16, uint8] =
 
   return cast[array[16, uint8]]([A, B, C, D])
 
+proc rc6DecryptBlock(S: array[44, uint32], src: pointer): array[16, uint8] =
+  let src = cast[ptr UncheckedArray[uint8]](src)
+
+  var A, B, C, D: uint32
+  copyMem(A.addr, src[0].addr, 4)
+  copyMem(B.addr, src[4].addr, 4)
+  copyMem(C.addr, src[8].addr, 4)
+  copyMem(D.addr, src[12].addr, 4)
+
+  C = C - S[43]
+  A = A - S[42]
+  for i in countdown(20, 1):
+    (A, B, C, D) = (D, A, B, C)
+    let
+      u = rotateLeftBits((D * (2 * D + 1)), 5)
+      t = rotateLeftBits((B * (2 * B + 1)), 5)
+    C = rotateRightBits((C - S[2 * i + 1]), t mod 32) xor u
+    A = rotateRightBits((A - S[2 * i]), u mod 32) xor t
+  D = D - S[1]
+  B = B - S[0]
+
+  return cast[array[16, uint8]]([A, B, C, D])
+
 proc rc6cbcEncrypt*(
   key: array[32, uint8],
   iv: array[16, uint8],
@@ -86,28 +109,6 @@ proc rc6cbcEncrypt*(
   let encrypted = rc6EncryptBlock(S, plaintextBlock[0].addr)
   copyMem(result[pos].addr, encrypted[0].unsafeAddr, 16)
 
-proc rc6DecryptBlock(S: array[44, uint32], src: pointer): array[16, uint8] =
-  let src = cast[ptr UncheckedArray[uint8]](src)
-
-  var A, B, C, D: uint32
-  copyMem(A.addr, src[0].addr, 4)
-  copyMem(B.addr, src[4].addr, 4)
-  copyMem(C.addr, src[8].addr, 4)
-  copyMem(D.addr, src[12].addr, 4)
-
-  C = C - S[43]
-  A = A - S[42]
-  for i in countdown(20, 1):
-    (A, B, C, D) = (D, A, B, C)
-    let
-      u = rotateLeftBits((D * (2 * D + 1)), 5)
-      t = rotateLeftBits((B * (2 * B + 1)), 5)
-    C = rotateRightBits((C - S[2 * i + 1]), t mod 32) xor u
-    A = rotateRightBits((A - S[2 * i]), u mod 32) xor t
-  D = D - S[1]
-  B = B - S[0]
-
-  return cast[array[16, uint8]]([A, B, C, D])
 
 proc rc6cbcDecrypt*(
   key: array[32, uint8],
