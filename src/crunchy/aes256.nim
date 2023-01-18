@@ -1,4 +1,4 @@
-import std/bitops
+import std/bitops, std/endians
 
 const
   Rcon = [0x0'u8, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36]
@@ -98,8 +98,17 @@ proc aes256EncryptBlock(
   roundKeys: array[60, uint32],
   src: pointer
 ): array[16, uint8] =
-  var state: array[4, uint32] # Row major
-  copyMem(state[0].addr, src, 16)
+  var rowMajor: array[4, array[4, uint8]]
+  copyMem(rowMajor[0].addr, src, 16)
+
+  var columnMajor: array[4, array[4, uint8]]
+  for c in 0 ..< 4:
+    columnMajor[c][0] = rowMajor[0][c]
+    columnMajor[c][1] = rowMajor[1][c]
+    columnMajor[c][2] = rowMajor[2][c]
+    columnMajor[c][3] = rowMajor[3][c]
+
+  var state = cast[array[4, uint32]](columnMajor)
 
   addRoundKey(state, roundKeys, 0)
 
@@ -113,7 +122,6 @@ proc aes256EncryptBlock(
   shiftRows(state)
   addRoundKey(state, roundKeys, 56)
 
-  # Write out as column major
   for c in 0 ..< 4:
     var word: array[4, uint8]
     word[0] = cast[array[4, array[4, uint8]]](state)[0][c]
@@ -127,6 +135,31 @@ proc aes256gcmEncrypt*(
   iv: array[12, uint8],
   plaintext: string
 ): string =
+  result.setLen(plaintext.len)
+
   let roundKeys = keyExpansion(key)
 
-  let o = aes256EncryptBlock(roundKeys, plaintext[0].unsafeAddr)
+  var something: array[4, uint32]
+  copyMem(something[0].addr, iv[0].unsafeAddr, 12)
+
+  var counter = 2.uint32
+  bigEndian32(something[3].addr, counter.addr)
+
+  var pos: int
+  while pos + 16 <= plaintext.len:
+    let tmp = aes256EncryptBlock(roundKeys, something[0].addr)
+
+    for i in 0 ..< 16:
+      result[pos + i] = (plaintext[pos + i].uint8 xor tmp[i]).char
+
+    pos += 16
+    inc counter
+    bigEndian32(something[3].addr, counter.addr)
+
+  # Handle a partial block if one remains
+
+  if pos < plaintext.len:
+    let tmp = aes256EncryptBlock(roundKeys, something[0].addr)
+
+    for i in 0 ..< plaintext.len - pos:
+      result[pos + i] = (plaintext[pos + i].uint8 xor tmp[i]).char

@@ -1,92 +1,42 @@
 import crunchy/aes256, std/strutils
 
-var key: array[32, uint8]
-for i in 0 ..< key.len:
-  key[i] = 'a'.uint8
+block:
+  var
+    key: array[32, uint8]
+    iv: array[12, uint8]
+    plaintext = newString(16)
 
-var plaintext = "bbbbbbbbbbbbbbbb"
+  doAssert aes256gcmEncrypt(key, iv, plaintext).toHex() ==
+    "CEA7403D4D606B6E074EC5D3BAF39D18"
 
-let output = aes256EncryptBlock(key, plaintext[0].addr)
-var s = newString(16)
-copyMem(s[0].addr, output[0].unsafeAddr, 16)
-echo s.toHex()
+block:
+  let
+    key = [
+      0xfe'u8, 0xff, 0xe9, 0x92, 0x86, 0x65, 0x73, 0x1c,
+      0x6d, 0x6a, 0x8f, 0x94, 0x67, 0x30, 0x83, 0x08,
+      0xfe, 0xff, 0xe9, 0x92, 0x86, 0x65, 0x73, 0x1c,
+      0x6d, 0x6a, 0x8f, 0x94, 0x67, 0x30, 0x83, 0x08
+    ]
+    iv = [
+      0xca'u8, 0xfe, 0xba, 0xbe, 0xfa, 0xce, 0xdb, 0xad, 0xde, 0xca, 0xf8, 0x88
+    ]
+    plaintext = "\xd9\x31\x32\x25\xf8\x84\x06\xe5\xa5\x59\x09\xc5\xaf\xf5\x26\x9a\x86\xa7\xa9\x53\x15\x34\xf7\xda\x2e\x4c\x30\x3d\x8a\x31\x8a\x72\x1c\x3c\x0c\x95\x95\x68\x09\x53\x2f\xcf\x0e\x24\x49\xa6\xb5\x25\xb1\x6a\xed\xf5\xaa\x0d\xe6\x57\xba\x63\x7b\x39\x1a\xaf\xd2\x55"
 
-echo "========="
+  doAssert aes256gcmEncrypt(key, iv, plaintext).toHex() ==
+    "522DC1F099567D07F47F37A32A84427D643A8CDCBFE5C0C97598A2BD2555D1AA8CB08E48590DBB3DA7B08B1056828838C5F61E6393BA7A0ABCC9F662898015AD"
 
+block:
+  let
+    key = [
+      0xfe'u8, 0xff, 0xe9, 0x92, 0x86, 0x65, 0x73, 0x1c,
+      0x6d, 0x6a, 0x8f, 0x94, 0x67, 0x30, 0x83, 0x08,
+      0xfe, 0xff, 0xe9, 0x92, 0x86, 0x65, 0x73, 0x1c,
+      0x6d, 0x6a, 0x8f, 0x94, 0x67, 0x30, 0x83, 0x08
+    ]
+    iv = [
+      0xca'u8, 0xfe, 0xba, 0xbe, 0xfa, 0xce, 0xdb, 0xad, 0xde, 0xca, 0xf8, 0x88
+    ]
+    plaintext = "\xd9\x31\x32\x25\xf8\x84\x06\xe5\xa5\x59\x09\xc5\xaf\xf5\x26\x9a\x86\xa7\xa9\x53\x15\x34\xf7\xda\x2e\x4c\x30\x3d\x8a\x31\x8a\x72\x1c\x3c\x0c\x95\x95\x68\x09\x53\x2f\xcf\x0e\x24\x49\xa6\xb5\x25\xb1\x6a\xed\xf5\xaa\x0d\xe6\x57\xba\x63\x7b\x39\x1a\xaf"
 
-# var state = [219'u32, 19, 83, 69]
-# mixColumns(state)
-
-
-
-# ## This is example of usage ``GCM[T]`` encryption/decryption.
-# ##
-# ## In this sample we are using GCM[AES256], but you can use any block
-# ## cipher from nimcrypto library.
-# import nimcrypto
-
-# # var aliceKey = "01234567890123456789012345678901"
-# var aliceData = "Alice hidden secret"
-# # var aliceIv = "0123456789ABCDEF"
-
-# block:
-#   ## Nim's way API using openArray[byte].
-
-#   var ectx, dctx: GCM[rijndael256]
-#   # var key: array[rijndael256.sizeKey, byte]
-#   # var iv: array[rijndael256.sizeBlock, byte]
-#   var plainText = newSeq[byte](len(aliceData))
-#   var encText = newSeq[byte](len(aliceData))
-#   var decText = newSeq[byte](len(aliceData))
-#   # Authentication tags
-#   var etag, dtag: array[rijndael256.sizeBlock, byte]
-
-#   # We do not need to pad data, `GCM` mode works byte by byte.
-#   copyMem(addr plainText[0], addr aliceData[0], len(aliceData))
-
-#   # We don not need to pad AAD data too.
-#   # copyMem(addr aadText[0], addr aliceAad[0], len(aliceAad))
-
-#   # AES256 key size is 256 bits or 32 bytes, so we need to pad key with
-#   # 0 bytes.
-#   # WARNING! Do not use 0 byte padding in applications, this is done
-#   # as example.
-#   # copyMem(addr key[0], addr aliceKey[0], len(aliceKey))
-
-#   # Initial vector IV size for GCM[aes256] is equal to AES256 block size 128
-#   # bits or 16 bytes.
-#   # copyMem(addr iv[0], addr aliceIv[0], len(aliceIv))
-
-#   # Initialization of GCM[aes256] context with encryption key.
-#   ectx.init(key, iv, [])
-
-#   # Encryption process
-#   # In `GCM` mode there no need to pad plain data.
-#   # ectx.encrypt(plainText, encText)
-#   # # Obtain authentication tag.
-#   # ectx.getTag(etag)
-#   # # Clear context of CTR[aes256].
-#   # ectx.clear()
-
-#   # # Initialization of GCM[aes256] context with encryption key.
-#   # dctx.init(key, iv, [])
-#   # # Decryption process
-#   # # In `GCM` mode there no need to pad encrypted data.
-#   # dctx.decrypt(encText, decText)
-#   # # Obtain authentication tag.
-#   # dctx.getTag(dtag)
-#   # # Clear context of CTR[aes256].
-#   # dctx.clear()
-
-#   # echo "IV: ", toHex(iv)
-#   # echo "PLAIN TEXT: ", toHex(plainText)
-#   # echo "ENCODED TEXT: ", toHex(encText)
-#   # # echo "DECODED TEXT: ", toHex(decText)
-#   # echo "ENCODED TAG: ", toHex(etag)
-#   # echo "DECODED TAG: ", toHex(dtag)
-
-#   # Note that if tags are not equal, decrypted data must not be considered as
-#   # successfully decrypted.
-#   # assert(equalMem(addr dtag[0], addr etag[0], len(etag)))
-#   # Compare plaintext with decoded text.
-#   # assert(equalMem(addr plainText[0], addr decText[0], len(plainText)))
+  doAssert aes256gcmEncrypt(key, iv, plaintext).toHex() ==
+    "522DC1F099567D07F47F37A32A84427D643A8CDCBFE5C0C97598A2BD2555D1AA8CB08E48590DBB3DA7B08B1056828838C5F61E6393BA7A0ABCC9F6628980"
