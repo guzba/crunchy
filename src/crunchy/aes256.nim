@@ -1,3 +1,5 @@
+import std/bitops
+
 const
   Rcon = [0x0'u8, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36]
   SBox = [
@@ -20,14 +22,13 @@ const
   ]
 
 proc subWord(value: uint32): uint32 =
-  var a: array[4, uint8]
-  copyMem(a[0].addr, value.unsafeAddr, 4)
+  var a = cast[array[4, uint8]](value)
   for i in 0 ..< 4:
     a[i] = SBox[(a[i] and 0xf0) shr 4][(a[i] and 0x0f)]
-  copyMem(result.addr, a[0].addr, 4)
+  cast[uint32](a)
 
 proc rotWord(value: uint32): uint32 {.inline.} =
-  result = (value shr 8) or (value shl 24)
+  rotateRightBits(value, 8)
 
 proc keyExpansion(key: array[32, uint8]): array[60, uint32] =
   for i in 0 ..< 8:
@@ -48,8 +49,9 @@ proc addRoundKey(
   keys: array[60, uint32],
   keyOffset: int
 ) =
-  var s, k: array[4, array[4, uint8]]
-  copyMem(s[0].addr, state[0].addr, 16)
+  var
+    s = cast[array[4, array[4, uint8]]](state)
+    k: array[4, array[4, uint8]]
   copyMem(k[0].addr, keys[keyOffset].unsafeAddr, 16)
   for i in 0 ..< 4:
     for j in 0 ..< 4:
@@ -64,24 +66,40 @@ proc subBytes(state: var array[4, uint32]) =
       s[i][j] = SBox[(s[i][j] and 0xf0) shr 4][(s[i][j] and 0x0f)]
   copyMem(state[0].addr, s[0].addr, 16)
 
-proc shiftRows(state: var array[4, uint32]) =
-  state[1] = (state[1] shr 8) or (state[1] shl 24)
-  state[2] = (state[2] shr 16) or (state[2] shl 16)
-  state[3] = (state[3] shr 24) or (state[3] shl 8)
+proc shiftRows(state: var array[4, uint32]) {.inline.} =
+  state[1] = rotateRightBits(state[1], 8)
+  state[2] = rotateRightBits(state[2], 16)
+  state[3] = rotateRightBits(state[3], 24)
 
-proc mixColumns(state: var array[4, uint32]) =
-  discard
+proc gf(a, b: uint8): uint8 =
+  var
+    a = a
+    b = b
+  for i in 0 ..< 8:
+    if (b and 1) != 0:
+      result = result xor a
+    let highBitSet = (a and 0x80) != 0
+    a  = a shl 1
+    if highBitSet:
+      a = a xor 0x1b
+    b = b shr 1
 
-proc encryptAes256Gcm*(
-  key: array[32, uint8],
-  iv: array[12, uint8],
-  plaintext: string
-): string =
-  let roundKeys = keyExpansion(key)
+proc mixColumns*(state: var array[4, uint32]) =
+  let s = cast[array[4, array[4, uint8]]](state)
+  var tmp: array[4, array[4, uint8]]
+  for c in 0 ..< 4:
+    tmp[0][c] = gf(0x02, s[0][c]) xor gf(0x03, s[1][c]) xor s[2][c] xor s[3][c]
+    tmp[1][c] = s[0][c] xor gf(0x02, s[1][c]) xor gf(0x03, s[2][c]) xor s[3][c]
+    tmp[2][c] = s[0][c] xor s[1][c] xor gf(0x02, s[2][c]) xor gf(0x03, s[3][c])
+    tmp[3][c] = gf(0x03, s[0][c]) xor s[1][c] xor s[2][c] xor gf(0x02, s[3][c])
+  state = cast[array[4, uint32]](tmp)
 
-  # echo cast[array[60, array[4, uint8]]](roundKeys)
-
-  var state: array[4, uint32]
+proc aes256EncryptBlock(
+  roundKeys: array[60, uint32],
+  src: pointer
+): array[16, uint8] =
+  var state: array[4, uint32] # Row major
+  copyMem(state[0].addr, src, 16)
 
   addRoundKey(state, roundKeys, 0)
 
@@ -89,6 +107,26 @@ proc encryptAes256Gcm*(
     subBytes(state)
     shiftRows(state)
     mixColumns(state)
-    for i in 0 ..< 4:
-      echo cast[array[4, uint8]](state[i])
-    break
+    addRoundKey(state, roundKeys, round * 4)
+
+  subBytes(state)
+  shiftRows(state)
+  addRoundKey(state, roundKeys, 56)
+
+  # Write out as column major
+  for c in 0 ..< 4:
+    var word: array[4, uint8]
+    word[0] = cast[array[4, array[4, uint8]]](state)[0][c]
+    word[1] = cast[array[4, array[4, uint8]]](state)[1][c]
+    word[2] = cast[array[4, array[4, uint8]]](state)[2][c]
+    word[3] = cast[array[4, array[4, uint8]]](state)[3][c]
+    copyMem(result[c * 4].addr, word.addr, 4)
+
+proc aes256gcmEncrypt*(
+  key: array[32, uint8],
+  iv: array[12, uint8],
+  plaintext: string
+): string =
+  let roundKeys = keyExpansion(key)
+
+  let o = aes256EncryptBlock(roundKeys, plaintext[0].unsafeAddr)

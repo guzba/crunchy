@@ -1,16 +1,22 @@
-import crunchy/aes256
+import crunchy/aes256, std/strutils
 
 var key: array[32, uint8]
 for i in 0 ..< key.len:
-  key[i] = i.uint8
+  key[i] = 'a'.uint8
 
-var iv: array[12, uint8]
-for i in 0 ..< iv.len:
-  iv[i] = i.uint8
+var plaintext = "bbbbbbbbbbbbbbbb"
 
-echo encryptAes256Gcm(key, iv, "Alice hidden secret")
+let output = aes256EncryptBlock(key, plaintext[0].addr)
+var s = newString(16)
+copyMem(s[0].addr, output[0].unsafeAddr, 16)
+echo s.toHex()
 
 echo "========="
+
+
+# var state = [219'u32, 19, 83, 69]
+# mixColumns(state)
+
 
 
 # ## This is example of usage ``GCM[T]`` encryption/decryption.
