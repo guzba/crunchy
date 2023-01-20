@@ -222,14 +222,12 @@ proc ghash(h: array[16, uint8], asdf: string): array[16, uint8] =
       0xe1'u8, 0'u8, 0'u8, 0'u8, 0'u8, 0'u8, 0'u8, 0'u8,
       0'u8, 0'u8, 0'u8, 0'u8, 0'u8, 0'u8, 0'u8, 0'u8
     ]
-
     var tmp = b
     for i in 0 ..< 16:
       for j in countdown(7, 0):
-        if testBit(a[i], j):
+        if (a[i] and (1.uint8 shl j)) != 0:
           result = result xor tmp
-
-        if testBit(tmp[15], 0):
+        if (tmp[15] and 1) != 0:
           tmp = tmp.rightShift() xor R
         else:
           tmp = tmp.rightShift()
