@@ -1,6 +1,6 @@
 import std/bitops, std/endians
 
-# https://blog.nindalf.com/posts/implementing-aes/
+# Helpful: https://blog.nindalf.com/posts/implementing-aes/
 
 const
   Rcon = [0x0'u8, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36]
@@ -208,10 +208,6 @@ proc aes256DecryptBlock(
     word[2] = cast[array[4, array[4, uint8]]](state)[2][c]
     word[3] = cast[array[4, array[4, uint8]]](state)[3][c]
     copyMem(result[c * 4].addr, word.addr, 4)
-
-
-
-
 
 proc ghash(h: array[16, uint8], asdf: string): array[16, uint8] =
 
