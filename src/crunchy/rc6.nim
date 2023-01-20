@@ -4,9 +4,7 @@ when defined(release):
   {.push checks: off.}
 
 proc makeKeySchedule(key: array[32, uint8]): array[44, uint32] =
-  var L: array[8, uint32]
-  for i in 0 ..< 8:
-    copyMem(L[i].addr, key[i * 4].unsafeAddr, 4)
+  var L = cast[array[8, uint32]](key)
 
   result[0] = 0xb7e15163'u32
 
