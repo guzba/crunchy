@@ -9,6 +9,9 @@ block:
   doAssert aes256gcmEncrypt(key, iv, plaintext).toHex() ==
     "CEA7403D4D606B6E074EC5D3BAF39D18"
 
+  doAssert aes256gcmDecrypt(key, iv, aes256gcmEncrypt(key, iv, plaintext)) ==
+    plaintext
+
 block:
   let
     key = [
@@ -25,6 +28,9 @@ block:
   doAssert aes256gcmEncrypt(key, iv, plaintext).toHex() ==
     "522DC1F099567D07F47F37A32A84427D643A8CDCBFE5C0C97598A2BD2555D1AA8CB08E48590DBB3DA7B08B1056828838C5F61E6393BA7A0ABCC9F662898015AD"
 
+  doAssert aes256gcmDecrypt(key, iv, aes256gcmEncrypt(key, iv, plaintext)) ==
+    plaintext
+
 block:
   let
     key = [
@@ -40,3 +46,6 @@ block:
 
   doAssert aes256gcmEncrypt(key, iv, plaintext).toHex() ==
     "522DC1F099567D07F47F37A32A84427D643A8CDCBFE5C0C97598A2BD2555D1AA8CB08E48590DBB3DA7B08B1056828838C5F61E6393BA7A0ABCC9F6628980"
+
+  doAssert aes256gcmDecrypt(key, iv, aes256gcmEncrypt(key, iv, plaintext)) ==
+    plaintext
