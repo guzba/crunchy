@@ -41,6 +41,9 @@ const
     [0x17'u8, 0x2b, 0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d]
   ]
 
+when defined(release):
+  {.push checks: off.}
+
 proc subWord(value: uint32): uint32 =
   var a = cast[array[4, uint8]](value)
   for i in 0 ..< 4:
@@ -365,3 +368,6 @@ proc aes256gcmDecrypt*(
     tag[i] = whatever[i] xor eky0[i]
 
   (move decrypted, tag)
+
+when defined(release):
+  {.pop.}
