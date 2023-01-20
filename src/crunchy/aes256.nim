@@ -1,5 +1,7 @@
 import std/bitops, std/endians
 
+# https://blog.nindalf.com/posts/implementing-aes/
+
 const
   Rcon = [0x0'u8, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36]
   SBox = [
@@ -211,16 +213,6 @@ proc aes256DecryptBlock(
 
 
 
-
-
-
-
-import std/strutils
-
-
-
-
-
 proc ghash(h: array[16, uint8], asdf: string): array[16, uint8] =
 
   proc rightShift(a: array[16, uint8]): array[16, uint8] =
@@ -266,8 +258,8 @@ proc aes256gcmEncrypt*(
   key: array[32, uint8],
   iv: array[12, uint8],
   plaintext: string
-): string =
-  result.setLen(plaintext.len)
+): (string, array[16, uint8]) =
+  var encrypted = newString(plaintext.len)
 
   let roundKeys = keyExpansion(key)
 
@@ -290,7 +282,7 @@ proc aes256gcmEncrypt*(
     let tmp = aes256EncryptBlock(roundKeys, ivAndCounter[0].addr)
 
     for i in 0 ..< 16:
-      result[pos + i] = (plaintext[pos + i].uint8 xor tmp[i]).char
+      encrypted[pos + i] = (plaintext[pos + i].uint8 xor tmp[i]).char
 
     pos += 16
     inc counter
@@ -300,17 +292,17 @@ proc aes256gcmEncrypt*(
     let tmp = aes256EncryptBlock(roundKeys, ivAndCounter[0].addr)
 
     for i in 0 ..< plaintext.len - pos:
-      result[pos + i] = (plaintext[pos + i].uint8 xor tmp[i]).char
+      encrypted[pos + i] = (plaintext[pos + i].uint8 xor tmp[i]).char
 
-  var asdfLen = 16 + result.len + 4 + 4 + 8
-  if result.len mod 16 != 0:
-    asdfLen += 16 - result.len mod 16
+  var asdfLen = 16 + encrypted.len + 4 + 4 + 8
+  if encrypted.len mod 16 != 0:
+    asdfLen += 16 - encrypted.len mod 16
 
   var asdf = newString(asdfLen)
-  copyMem(asdf[16].addr, result[0].addr, result.len)
+  copyMem(asdf[16].addr, encrypted[0].addr, encrypted.len)
 
-  var resultBits = result.len * 8
-  bigEndian64(asdf[^8].addr, resultBits.addr)
+  var encryptedBits = encrypted.len * 8
+  bigEndian64(asdf[^8].addr, encryptedBits.addr)
 
   let whatever = ghash(h, asdf)
 
@@ -318,17 +310,14 @@ proc aes256gcmEncrypt*(
   for i in 0 ..< 16:
     tag[i] = whatever[i] xor eky0[i]
 
-  block:
-    var s = newString(16)
-    copyMem(s[0].addr, tag[0].unsafeAddr, 16)
-    echo s.toHex()
+  (move encrypted, tag)
 
 proc aes256gcmDecrypt*(
   key: array[32, uint8],
   iv: array[12, uint8],
   encrypted: string
-): string =
-  result.setLen(encrypted.len)
+): (string, array[16, uint8]) =
+  var decrypted = newString(encrypted.len)
 
   let roundKeys = keyExpansion(key)
 
@@ -351,7 +340,7 @@ proc aes256gcmDecrypt*(
     let tmp = aes256EncryptBlock(roundKeys, ivAndCounter[0].addr)
 
     for i in 0 ..< 16:
-      result[pos + i] = (encrypted[pos + i].uint8 xor tmp[i]).char
+      decrypted[pos + i] = (encrypted[pos + i].uint8 xor tmp[i]).char
 
     pos += 16
     inc counter
@@ -361,7 +350,7 @@ proc aes256gcmDecrypt*(
     let tmp = aes256EncryptBlock(roundKeys, ivAndCounter[0].addr)
 
     for i in 0 ..< encrypted.len - pos:
-      result[pos + i] = (encrypted[pos + i].uint8 xor tmp[i]).char
+      decrypted[pos + i] = (encrypted[pos + i].uint8 xor tmp[i]).char
 
   var asdfLen = 16 + encrypted.len + 4 + 4 + 8
   if encrypted.len mod 16 != 0:
@@ -379,7 +368,4 @@ proc aes256gcmDecrypt*(
   for i in 0 ..< 16:
     tag[i] = whatever[i] xor eky0[i]
 
-  block:
-    var s = newString(16)
-    copyMem(s[0].addr, tag[0].unsafeAddr, 16)
-    echo s.toHex()
+  (move decrypted, tag)
