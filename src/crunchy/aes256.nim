@@ -301,7 +301,7 @@ proc aes256gcmEncrypt*(
   copyMem(asdf[16].addr, encrypted[0].addr, encrypted.len)
 
   var encryptedBits = encrypted.len * 8
-  bigEndian64(asdf[^8].addr, encryptedBits.addr)
+  bigEndian64(asdf[asdfLen - 8].addr, encryptedBits.addr)
 
   let whatever = ghash(h, asdf)
 
