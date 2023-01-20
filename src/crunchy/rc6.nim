@@ -109,7 +109,6 @@ proc rc6cbcEncrypt*(
   let encrypted = rc6EncryptBlock(S, plaintextBlock[0].addr)
   copyMem(result[pos].addr, encrypted[0].unsafeAddr, 16)
 
-
 proc rc6cbcDecrypt*(
   key: array[32, uint8],
   iv: array[16, uint8],
