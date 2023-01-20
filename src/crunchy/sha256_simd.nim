@@ -1,3 +1,6 @@
+when defined(release):
+  {.push checks: off.}
+
 when defined(amd64):
   import nimsimd/sse41
 
@@ -198,3 +201,6 @@ when defined(amd64):
 
     mm_storeu_si128(state[0].addr, state0)
     mm_storeu_si128(state[4].addr, state1)
+
+when defined(release):
+  {.pop.}
