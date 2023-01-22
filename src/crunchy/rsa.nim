@@ -37,7 +37,9 @@ proc sign*(pk: RsaPrivateKey, message: string): string =
 
   copyMem(padded[padded.len - 32].addr, hash[0].unsafeAddr, 32)
 
-  result = initBigInt(padded.toHex(), base = 16).powmod(pk.d, pk.n).toString(16)
+  result = parseHexStr(
+    initBigInt(padded.toHex(), base = 16).powmod(pk.d, pk.n).toString(16)
+  )
 
 template raisePrivateKeyError() =
   raise newException(CrunchyError, "RSA private key data appears invalid")
@@ -65,9 +67,16 @@ proc decodeBigInt(buf: string, pos: var int): BigInt =
 
 proc decodePrivateKey*(s: string): RsaPrivateKey =
   var lines = s.split('\n')
+
+  if lines[lines.high] == "":
+    discard lines.pop()
+
+  if lines.len == 0:
+    raisePrivateKeyError()
+
   if lines[0].startsWith('-'):
     # Trim off -----BEGIN RSA PRIVATE KEY-----, -----END RSA PRIVATE KEY-----
-    lines = lines[1 ..< ^2]
+    lines = lines[1 ..< ^1]
 
   let buf = decode(lines.join())
 
