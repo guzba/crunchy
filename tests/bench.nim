@@ -1,4 +1,5 @@
-import benchy, crunchy, crunchy/internal, std/random, crunchy/rc6, crunchy/aes256
+import benchy, crunchy, crunchy/internal, std/random, crunchy/rc6, crunchy/aes256,
+    crunchy/rsa
 
 randomize()
 
@@ -33,3 +34,8 @@ block:
   timeIt "aes256gcm":
     let (encrypted, _) = aes256gcmEncrypt(key, iv, data)
     discard aes256gcmDecrypt(key, iv, encrypted)
+
+block:
+  let pk = decodePrivateKey(readFile("/Users/me/Documents/GitHub/crunchy/tests/data/2048.txt"))
+  timeIt "powmod":
+    discard pk.p.powmod(pk.d, pk.n)
