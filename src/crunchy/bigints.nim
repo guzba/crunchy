@@ -1,7 +1,13 @@
 import std/bitops, std/math, std/algorithm
 
 ## This is a partial fork of https://github.com/nim-lang/bigints
-## The goal here is to do faster RSA signing (powmod) for now.
+## The goal here is to do faster RSA signing (powmod) specifically.
+## With current changes this fork does RSA powmod 10x faster,
+## now taking 0.5s instead of 5s for a RSA 2048 powmod.
+## Unfortunately it should be another 10x faster still. Next idea:
+## https://en.wikipedia.org/wiki/RSA_(cryptosystem)#Using_the_Chinese_remainder_algorithm
+## https://crypto.stackexchange.com/questions/2575/chinese-remainder-theorem-and-rsa
+## https://crypto.stackexchange.com/questions/10691/how-to-iteratively-calculate-aemod-n-with-modulus-n-sized-4096-bits
 
 type
   BigInt* = object
