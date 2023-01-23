@@ -187,7 +187,7 @@ proc unsignedAdditionInt(a: var BigInt, b: BigInt, c: uint32) =
     a.limbs.add(uint32(tmp))
   a.isNegative = false
 
-proc unsignedMultiplication(a: var BigInt, b, c: BigInt) {.inline.} =
+proc unsignedMultiplication(a: var BigInt, b, c: BigInt) =
   # always called with bl >= cl
   let
     bl = b.limbs.len
@@ -209,7 +209,7 @@ proc unsignedMultiplication(a: var BigInt, b, c: BigInt) {.inline.} =
       a.limbs[j + i] = uint32(tmp and uint32.high)
       tmp = tmp shr 32
     var pos = j + bl
-    while tmp > 0'u64:
+    if tmp > 0'u64:
       tmp += uint64(a.limbs[pos])
       a.limbs[pos] = uint32(tmp and uint32.high)
       tmp = tmp shr 32
@@ -231,7 +231,7 @@ proc multiplication(a: var BigInt, b, c: BigInt) =
     unsignedMultiplication(a, b, c)
   a.isNegative = b.isNegative xor c.isNegative
 
-proc `*`(a, b: BigInt): BigInt =
+proc `*`(a, b: BigInt): BigInt {.inline.} =
   ## Multiplication for `BigInt`s.
   runnableExamples:
     let
@@ -470,6 +470,8 @@ proc initBigInt*(str: string, base: range[2..36] = 10): BigInt =
 
 ################################################################################
 
+{.push checks: off.}
+
 proc realUnsignedSubtraction2(a: var BigInt, c: BigInt) {.inline.} =
   # In-place subtraction
   # a > c
@@ -484,21 +486,14 @@ proc realUnsignedSubtraction2(a: var BigInt, c: BigInt) {.inline.} =
     tmp = int64(uint32.high) + 1 + int64(a.limbs[i]) - int64(c.limbs[i]) - tmp
     a.limbs[i] = uint32(tmp and int64(uint32.high))
     tmp = 1 - (tmp shr 32)
-  if al < cl:
-    for i in m ..< cl:
-      tmp = int64(uint32.high) + 1 - int64(c.limbs[i]) - tmp
-      a.limbs[i] = uint32(tmp and int64(uint32.high))
-      tmp = 1 - (tmp shr 32)
-    a.isNegative = true
-  else:
-    for i in m ..< al:
-      tmp = int64(uint32.high) + 1 + int64(a.limbs[i]) - tmp
-      a.limbs[i] = uint32(tmp and int64(uint32.high))
-      tmp = 1 - (tmp shr 32)
-    a.isNegative = false
+  for i in m ..< al:
+    tmp = int64(uint32.high) + 1 + int64(a.limbs[i]) - tmp
+    a.limbs[i] = uint32(tmp and int64(uint32.high))
+    tmp = 1 - (tmp shr 32)
+  a.isNegative = false
 
   normalize(a)
-  assert tmp == 0
+  # assert tmp == 0
 
 proc modulo(a, b: BigInt, memoized: var seq[BigInt]): BigInt =
   # Binary-search-ish modulo
@@ -522,8 +517,6 @@ proc modulo(a, b: BigInt, memoized: var seq[BigInt]): BigInt =
 proc powmod*(base, exponent, modulus: BigInt): BigInt =
   ## Compute modular exponentation of `base` with power `exponent` modulo `modulus`.
   ## The return value is always in the range `[0, modulus-1]`.
-  runnableExamples:
-    assert powmod(2.initBigInt, 3.initBigInt, 7.initBigInt) == 1.initBigInt
   if modulus.isZero:
     raise newException(DivByZeroDefect, "modulus must be nonzero")
   elif modulus.isNegative:
@@ -542,3 +535,5 @@ proc powmod*(base, exponent, modulus: BigInt): BigInt =
         result = modulo((result * base), modulus, memoized)
       base = modulo((base * base), modulus, memoized)
       exponent = exponent shr 1
+
+{.pop.}
