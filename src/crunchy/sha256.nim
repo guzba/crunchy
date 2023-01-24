@@ -1,4 +1,12 @@
-import internal, std/bitops, std/endians, std/strutils
+import common, internal, std/endians, std/strutils
+
+when defined(clang):
+  # Something is wrong with std/bitops + my Mac.
+  # This is 10x faster in debug builds.
+  func rotateRightBits(value: uint32, shift: uint32): uint32
+    {.importc: "__builtin_rotateright32", nodecl.}
+else:
+  import std/bitops
 
 const k = [
   0x428a2f98'u32, 0x71374491'u32, 0xb5c0fbcf'u32, 0xe9b5dba5'u32,
@@ -199,6 +207,9 @@ proc hmacSha256*(
 
 proc pbkdf2*(password, salt: string, iterations: int): array[32, uint8] =
   ## PBKDF2-HMAC-SHA256
+
+  if iterations < 1:
+    raise newException(CrunchyError, "Invalid number of iterations")
 
   result = hmacSha256(password, salt & "\0\0\0\1")
 
