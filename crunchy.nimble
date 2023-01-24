@@ -1,4 +1,4 @@
-version     = "0.1.3"
+version     = "0.1.4"
 author      = "Ryan Oldenburg"
 description = "SIMD-optimized hashing, checksums and CRCs"
 license     = "MIT"
