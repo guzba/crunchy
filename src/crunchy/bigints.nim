@@ -1280,14 +1280,17 @@ func invmod*(a, modulus: BigInt): BigInt =
       raise newException(ValueError, $a & " has no modular inverse modulo " & $modulus)
     result = t0.modulo(modulus)
 
-proc inPlaceSubtraction(a: var BigInt, c: BigInt) =
+{.push checks:off.}
+
+template inPlaceSubtraction(a: var BigInt, c: BigInt) =
   # In-place subtraction
   # a > c
   let
     al = a.limbs.len
     cl = c.limbs.len
-  var m = min(al, cl)
-  a.limbs.setLen(max(al, cl))
+    m = min(al, cl)
+  if al > cl:
+    a.limbs.setLen(max(al, cl))
 
   var tmp = 0'i64
   for i in 0 ..< m:
@@ -1300,7 +1303,8 @@ proc inPlaceSubtraction(a: var BigInt, c: BigInt) =
     tmp = 1 - (tmp shr 32)
   a.isNegative = false
 
-  a.normalize()
+  if a.limbs[a.limbs.high] == 0'u32:
+    a.normalize()
   # assert tmp == 0
 
 proc mymod*(a, b: BigInt, memoized: var seq[BigInt]): BigInt =
@@ -1348,3 +1352,5 @@ func powmod*(base, exponent, modulus: BigInt): BigInt =
         result = mymod((result * basePow), modulus, memoized)
       basePow = mymod((basePow * basePow), modulus, memoized)
       exponent = exponent shr 1
+
+{.pop.}
