@@ -80,6 +80,7 @@ func initBigInt*(val: BigInt): BigInt =
 const
   zero = initBigInt(0)
   one = initBigInt(1)
+  two = initBigInt(2)
 
 func isZero(a: BigInt): bool {.inline.} =
   a.limbs.len == 0 or (a.limbs.len == 1 and a.limbs[0] == 0)
@@ -1279,6 +1280,48 @@ func invmod*(a, modulus: BigInt): BigInt =
       raise newException(ValueError, $a & " has no modular inverse modulo " & $modulus)
     result = t0.modulo(modulus)
 
+proc inPlaceSubtraction(a: var BigInt, c: BigInt) =
+  # In-place subtraction
+  # a > c
+  let
+    al = a.limbs.len
+    cl = c.limbs.len
+  var m = min(al, cl)
+  a.limbs.setLen(max(al, cl))
+
+  var tmp = 0'i64
+  for i in 0 ..< m:
+    tmp = int64(uint32.high) + 1 + int64(a.limbs[i]) - int64(c.limbs[i]) - tmp
+    a.limbs[i] = uint32(tmp and int64(uint32.high))
+    tmp = 1 - (tmp shr 32)
+  for i in m ..< al:
+    tmp = int64(uint32.high) + 1 + int64(a.limbs[i]) - tmp
+    a.limbs[i] = uint32(tmp and int64(uint32.high))
+    tmp = 1 - (tmp shr 32)
+  a.isNegative = false
+
+  a.normalize()
+  # assert tmp == 0
+
+proc mymod*(a, b: BigInt, memoized: var seq[BigInt]): BigInt =
+  # Binary-search-ish modulo
+  result = a
+
+  var sl: int
+  block:
+    var s = b
+    while result > s:
+      if sl == memoized.len:
+        memoized.add(s)
+        s *= two
+      else:
+        s = memoized[sl]
+      inc sl
+
+  for i in countdown(sl - 1, 0):
+    if result > memoized[i]:
+      inPlaceSubtraction(result, memoized[i])
+
 func powmod*(base, exponent, modulus: BigInt): BigInt =
   ## Compute modular exponentation of `base` with power `exponent` modulo `modulus`.
   ## The return value is always in the range `[0, modulus-1]`.
@@ -1294,6 +1337,7 @@ func powmod*(base, exponent, modulus: BigInt): BigInt =
     var
       base = base
       exponent = exponent
+      memoized: seq[BigInt]
     if exponent < 0:
       base = invmod(base, modulus)
       exponent = -exponent
@@ -1301,6 +1345,6 @@ func powmod*(base, exponent, modulus: BigInt): BigInt =
     result = one
     while not exponent.isZero:
       if (exponent.limbs[0] and 1) != 0:
-        result = (result * basePow) mod modulus
-      basePow = (basePow * basePow) mod modulus
+        result = mymod((result * basePow), modulus, memoized)
+      basePow = mymod((basePow * basePow), modulus, memoized)
       exponent = exponent shr 1
