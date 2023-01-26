@@ -37,9 +37,19 @@ proc sign*(pk: RsaPrivateKey, message: string): string =
 
   copyMem(padded[padded.len - 32].addr, hash[0].unsafeAddr, 32)
 
-  result = parseHexStr(
-    initBigInt(padded.toHex(), base = 16).powmod(pk.d, pk.n).toString(16)
-  )
+  let
+    c = initBigInt(padded.toHex(), base = 16)
+    # CRT
+    pq = pk.p * pk.q
+    m1 = c.powmod(pk.e1, pk.p)
+    m2 = c.powmod(pk.e2, pk.q)
+    h = (pk.coef * (m1 - m2)) mod pk.p
+    m = (m2 + (h * pk.q)) mod pq
+
+  # Without CRT
+  # let m = c.powmod(pk.d, pk.n)
+
+  return parseHexStr(m.toString(16))
 
 template raisePrivateKeyError() =
   raise newException(CrunchyError, "RSA private key data appears invalid")
