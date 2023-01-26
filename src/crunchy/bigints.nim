@@ -1,13 +1,11 @@
-import std/bitops, std/math, std/algorithm
-
-## This is a partial fork of https://github.com/nim-lang/bigints
+## This is a temporary fork of https://github.com/nim-lang/bigints
 ## The goal here is to do faster RSA signing (powmod) specifically.
-## With current changes this fork does RSA powmod 10x faster,
-## now taking 0.5s instead of 5s for a RSA 2048 powmod.
-## Unfortunately it should be another 10x faster still. Next idea:
-## https://en.wikipedia.org/wiki/RSA_(cryptosystem)#Using_the_Chinese_remainder_algorithm
-## https://crypto.stackexchange.com/questions/2575/chinese-remainder-theorem-and-rsa
-## https://crypto.stackexchange.com/questions/10691/how-to-iteratively-calculate-aemod-n-with-modulus-n-sized-4096-bits
+
+## Arbitrary precision integers.
+##
+## The bitwise operations behave as if negative numbers were represented in 2's complement.
+
+import std/[algorithm, bitops, math, options]
 
 type
   BigInt* = object
@@ -18,14 +16,21 @@ type
     limbs: seq[uint32]
     isNegative: bool
 
-proc normalize(a: var BigInt) =
+
+# forward declarations
+func succ*(a: BigInt, b: int = 1): BigInt
+func inc*(a: var BigInt, b: int = 1)
+func dec*(a: var BigInt, b: int = 1)
+
+
+func normalize(a: var BigInt) =
   for i in countdown(a.limbs.high, 0):
     if a.limbs[i] > 0'u32:
       a.limbs.setLen(i+1)
       return
   a.limbs.setLen(1)
 
-proc initBigInt*(vals: sink seq[uint32], isNegative = false): BigInt =
+func initBigInt*(vals: sink seq[uint32], isNegative = false): BigInt =
   ## Initializes a `BigInt` from a sequence of `uint32` values.
   runnableExamples:
     let a = @[10'u32, 2'u32].initBigInt
@@ -35,7 +40,7 @@ proc initBigInt*(vals: sink seq[uint32], isNegative = false): BigInt =
   result.isNegative = isNegative
   normalize(result)
 
-proc initBigInt*[T: int8|int16|int32](val: T): BigInt =
+func initBigInt*[T: int8|int16|int32](val: T): BigInt =
   if val < 0:
     result.limbs = @[(not val).uint32 + 1] # manual 2's complement (to avoid overflow)
     result.isNegative = true
@@ -43,10 +48,10 @@ proc initBigInt*[T: int8|int16|int32](val: T): BigInt =
     result.limbs = @[val.uint32]
     result.isNegative = false
 
-proc initBigInt*[T: uint8|uint16|uint32](val: T): BigInt =
+func initBigInt*[T: uint8|uint16|uint32](val: T): BigInt =
   result.limbs = @[val.uint32]
 
-proc initBigInt*(val: int64): BigInt =
+func initBigInt*(val: int64): BigInt =
   var a = val.uint64
   if val < 0:
     a = not a + 1 # 2's complement
@@ -56,7 +61,7 @@ proc initBigInt*(val: int64): BigInt =
   else:
     result.limbs = @[a.uint32]
 
-proc initBigInt*(val: uint64): BigInt =
+func initBigInt*(val: uint64): BigInt =
   if val > uint32.high:
     result.limbs = @[(val and uint32.high).uint32, (val shr 32).uint32]
   else:
@@ -69,27 +74,34 @@ else:
   template initBigInt*(val: int): BigInt = initBigInt(val.int64)
   template initBigInt*(val: uint): BigInt = initBigInt(val.uint64)
 
-proc initBigInt*(val: BigInt): BigInt =
+func initBigInt*(val: BigInt): BigInt =
   result = val
 
 const
   zero = initBigInt(0)
   one = initBigInt(1)
-  two = initBigInt(2)
 
-proc isZero(a: BigInt): bool {.inline.} =
+func isZero(a: BigInt): bool {.inline.} =
   a.limbs.len == 0 or (a.limbs.len == 1 and a.limbs[0] == 0)
 
-proc unsignedCmp(a: BigInt, b: uint32): int64 =
+func abs*(a: BigInt): BigInt =
+  # Returns the absolute value of `a`.
+  runnableExamples:
+    assert abs(42.initBigInt) == 42.initBigInt
+    assert abs(-12.initBigInt) == 12.initBigInt
+  result = a
+  result.isNegative = false
+
+func unsignedCmp(a: BigInt, b: uint32): int64 =
   # ignores the sign of `a`
   # `a` and `b` are assumed to not be zero
   result = int64(a.limbs.len) - 1
   if result != 0: return
   result = int64(a.limbs[0]) - int64(b)
 
-proc unsignedCmp(a: uint32, b: BigInt): int64 = -unsignedCmp(b, a)
+func unsignedCmp(a: uint32, b: BigInt): int64 = -unsignedCmp(b, a)
 
-proc unsignedCmp(a, b: BigInt): int64 =
+func unsignedCmp(a, b: BigInt): int64 =
   # ignores the signs of `a` and `b`
   # `a` and `b` are assumed to not be zero
   result = int64(a.limbs.len) - int64(b.limbs.len)
@@ -99,7 +111,7 @@ proc unsignedCmp(a, b: BigInt): int64 =
     if result != 0:
       return
 
-proc cmp(a, b: BigInt): int64 =
+func cmp(a, b: BigInt): int64 =
   ## Returns:
   ## * a value less than zero, if `a < b`
   ## * a value greater than zero, if `a > b`
@@ -122,7 +134,7 @@ proc cmp(a, b: BigInt): int64 =
     else:
       return unsignedCmp(a, b)
 
-proc cmp(a: BigInt, b: int32): int64 =
+func cmp(a: BigInt, b: int32): int64 =
   ## Returns:
   ## * a value less than zero, if `a < b`
   ## * a value greater than zero, if `a > b`
@@ -140,9 +152,9 @@ proc cmp(a: BigInt, b: int32): int64 =
     else:
       return unsignedCmp(a, b.uint32)
 
-proc cmp(a: int32, b: BigInt): int64 = -cmp(b, a)
+func cmp(a: int32, b: BigInt): int64 = -cmp(b, a)
 
-proc `==`(a, b: BigInt): bool =
+func `==`*(a, b: BigInt): bool =
   ## Compares if two `BigInt` numbers are equal.
   runnableExamples:
     let
@@ -153,7 +165,7 @@ proc `==`(a, b: BigInt): bool =
     assert b != c
   cmp(a, b) == 0
 
-proc `<`(a, b: BigInt): bool =
+func `<`*(a, b: BigInt): bool =
   runnableExamples:
     let
       a = 5.initBigInt
@@ -163,7 +175,7 @@ proc `<`(a, b: BigInt): bool =
     assert b > c
   cmp(a, b) < 0
 
-proc `<=`(a, b: BigInt): bool =
+func `<=`*(a, b: BigInt): bool =
   runnableExamples:
     let
       a = 5.initBigInt
@@ -173,16 +185,16 @@ proc `<=`(a, b: BigInt): bool =
     assert c <= b
   cmp(a, b) <= 0
 
-proc `==`(a: BigInt, b: int32): bool = cmp(a, b) == 0
-proc `<`(a: BigInt, b: int32): bool = cmp(a, b) < 0
-proc `<`(a: int32, b: BigInt): bool = cmp(a, b) < 0
+func `==`(a: BigInt, b: int32): bool = cmp(a, b) == 0
+func `<`(a: BigInt, b: int32): bool = cmp(a, b) < 0
+func `<`(a: int32, b: BigInt): bool = cmp(a, b) < 0
 
 template addParts(toAdd) =
   tmp += toAdd
   a.limbs[i] = uint32(tmp and uint32.high)
   tmp = tmp shr 32
 
-proc unsignedAdditionInt(a: var BigInt, b: BigInt, c: uint32) =
+func unsignedAdditionInt(a: var BigInt, b: BigInt, c: uint32) =
   let bl = b.limbs.len
   a.limbs.setLen(bl)
 
@@ -193,7 +205,204 @@ proc unsignedAdditionInt(a: var BigInt, b: BigInt, c: uint32) =
     a.limbs.add(uint32(tmp))
   a.isNegative = false
 
-proc unsignedMultiplication(a: var BigInt, b, c: BigInt) =
+func unsignedAddition(a: var BigInt, b, c: BigInt) =
+  let
+    bl = b.limbs.len
+    cl = c.limbs.len
+  var m = min(bl, cl)
+  a.limbs.setLen(max(bl, cl))
+
+  var tmp = 0'u64
+  for i in 0 ..< m:
+    addParts(uint64(b.limbs[i]) + uint64(c.limbs[i]))
+  if bl < cl:
+    for i in m ..< cl:
+      addParts(uint64(c.limbs[i]))
+  else:
+    for i in m ..< bl:
+      addParts(uint64(b.limbs[i]))
+  if tmp > 0'u64:
+    a.limbs.add(uint32(tmp))
+  a.isNegative = false
+
+func negate(a: var BigInt) =
+  a.isNegative = not a.isNegative
+
+func `-`*(a: BigInt): BigInt =
+  ## Unary minus for `BigInt`.
+  runnableExamples:
+    let
+      a = 5.initBigInt
+      b = -10.initBigInt
+    assert (-a) == -5.initBigInt
+    assert (-b) == 10.initBigInt
+  result = a
+  negate(result)
+
+template realUnsignedSubtractionInt(a: var BigInt, b: BigInt, c: uint32) =
+  # b > c
+  let bl = b.limbs.len
+  a.limbs.setLen(bl)
+
+  var tmp = int64(c)
+  for i in 0 ..< bl:
+    tmp = int64(uint32.high) + 1 + int64(b.limbs[i]) - tmp
+    a.limbs[i] = uint32(tmp and int64(uint32.high))
+    tmp = 1 - (tmp shr 32)
+  a.isNegative = false
+
+  normalize(a)
+  assert tmp == 0
+
+template realUnsignedSubtraction(a: var BigInt, b, c: BigInt) =
+  # b > c
+  let
+    bl = b.limbs.len
+    cl = c.limbs.len
+  var m = min(bl, cl)
+  a.limbs.setLen(max(bl, cl))
+
+  var tmp = 0'i64
+  for i in 0 ..< m:
+    tmp = int64(uint32.high) + 1 + int64(b.limbs[i]) - int64(c.limbs[i]) - tmp
+    a.limbs[i] = uint32(tmp and int64(uint32.high))
+    tmp = 1 - (tmp shr 32)
+  if bl < cl:
+    for i in m ..< cl:
+      tmp = int64(uint32.high) + 1 - int64(c.limbs[i]) - tmp
+      a.limbs[i] = uint32(tmp and int64(uint32.high))
+      tmp = 1 - (tmp shr 32)
+    a.isNegative = true
+  else:
+    for i in m ..< bl:
+      tmp = int64(uint32.high) + 1 + int64(b.limbs[i]) - tmp
+      a.limbs[i] = uint32(tmp and int64(uint32.high))
+      tmp = 1 - (tmp shr 32)
+    a.isNegative = false
+
+  normalize(a)
+  assert tmp == 0
+
+func unsignedSubtractionInt(a: var BigInt, b: BigInt, c: uint32) =
+  # `b` is not zero
+  let cmpRes = unsignedCmp(b, c)
+  if cmpRes > 0:
+    realUnsignedSubtractionInt(a, b, c)
+  elif cmpRes < 0:
+    # `b` is only a single limb
+    a.limbs = @[c - b.limbs[0]]
+    a.isNegative = true
+  else: # b == c
+    a = zero
+
+func unsignedSubtraction(a: var BigInt, b, c: BigInt) =
+  let cmpRes = unsignedCmp(b, c)
+  if cmpRes > 0:
+    realUnsignedSubtraction(a, b, c)
+  elif cmpRes < 0:
+    realUnsignedSubtraction(a, c, b)
+    a.negate()
+  else: # b == c
+    a = zero
+
+func additionInt(a: var BigInt, b: BigInt, c: int32) =
+  # a = b + c
+  if b.isZero:
+    a = c.initBigInt
+  elif b.isNegative:
+    if c < 0:
+      unsignedAdditionInt(a, b, (not c).uint32 + 1)
+    else:
+      unsignedSubtractionInt(a, b, c.uint32)
+    a.negate()
+  else:
+    if c < 0:
+      unsignedSubtractionInt(a, b, (not c).uint32 + 1)
+    else:
+      unsignedAdditionInt(a, b, c.uint32)
+
+func addition(a: var BigInt, b, c: BigInt) =
+  # a = b + c
+  if b.isNegative:
+    if c.isNegative:
+      unsignedAddition(a, b, c)
+      a.isNegative = true
+    else:
+      unsignedSubtraction(a, c, b)
+  else:
+    if c.isNegative:
+      unsignedSubtraction(a, b, c)
+    else:
+      unsignedAddition(a, b, c)
+
+func `+`*(a, b: BigInt): BigInt =
+  ## Addition for `BigInt`s.
+  runnableExamples:
+    let
+      a = 5.initBigInt
+      b = 10.initBigInt
+    assert a + b == 15.initBigInt
+    assert (-a) + b == 5.initBigInt
+    assert a + (-b) == -5.initBigInt
+  addition(result, a, b)
+
+template `+=`*(a: var BigInt, b: BigInt) =
+  runnableExamples:
+    var a = 5.initBigInt
+    a += 2.initBigInt
+    assert a == 7.initBigInt
+  a = a + b
+
+func subtractionInt(a: var BigInt, b: BigInt, c: int32) =
+  # a = b - c
+  if b.isZero:
+    a = -c.initBigInt
+  elif b.isNegative:
+    if c < 0:
+      unsignedSubtractionInt(a, b, (not c).uint32 + 1)
+    else:
+      unsignedAdditionInt(a, b, c.uint32)
+    a.negate()
+  else:
+    if c < 0:
+      unsignedAdditionInt(a, b, (not c).uint32 + 1)
+    else:
+      unsignedSubtractionInt(a, b, c.uint32)
+
+func subtraction(a: var BigInt, b, c: BigInt) =
+  # a = b - c
+  if b.isNegative:
+    if c.isNegative:
+      unsignedSubtraction(a, c, b)
+    else:
+      unsignedAddition(a, b, c)
+      a.isNegative = true
+  else:
+    if c.isNegative:
+      unsignedAddition(a, b, c)
+    else:
+      unsignedSubtraction(a, b, c)
+
+func `-`*(a, b: BigInt): BigInt =
+  ## Subtraction for `BigInt`s.
+  runnableExamples:
+    let
+      a = 15.initBigInt
+      b = 10.initBigInt
+    assert a - b == 5.initBigInt
+    assert (-a) - b == -25.initBigInt
+    assert a - (-b) == 25.initBigInt
+  subtraction(result, a, b)
+
+template `-=`*(a: var BigInt, b: BigInt) =
+  runnableExamples:
+    var a = 5.initBigInt
+    a -= 2.initBigInt
+    assert a == 3.initBigInt
+  a = a - b
+
+
+func unsignedMultiplication(a: var BigInt, b, c: BigInt) {.inline.} =
   # always called with bl >= cl
   let
     bl = b.limbs.len
@@ -215,14 +424,14 @@ proc unsignedMultiplication(a: var BigInt, b, c: BigInt) =
       a.limbs[j + i] = uint32(tmp and uint32.high)
       tmp = tmp shr 32
     var pos = j + bl
-    if tmp > 0'u64:
+    while tmp > 0'u64:
       tmp += uint64(a.limbs[pos])
       a.limbs[pos] = uint32(tmp and uint32.high)
       tmp = tmp shr 32
       inc pos
   normalize(a)
 
-proc multiplication(a: var BigInt, b, c: BigInt) =
+func multiplication(a: var BigInt, b, c: BigInt) =
   # a = b * c
   if b.isZero or c.isZero:
     a = zero
@@ -237,7 +446,7 @@ proc multiplication(a: var BigInt, b, c: BigInt) =
     unsignedMultiplication(a, b, c)
   a.isNegative = b.isNegative xor c.isNegative
 
-proc `*`(a, b: BigInt): BigInt {.inline.} =
+func `*`*(a, b: BigInt): BigInt =
   ## Multiplication for `BigInt`s.
   runnableExamples:
     let
@@ -246,14 +455,49 @@ proc `*`(a, b: BigInt): BigInt {.inline.} =
     assert a * b == 84200.initBigInt
   multiplication(result, a, b)
 
-template `*=`(a: var BigInt, b: BigInt) =
+template `*=`*(a: var BigInt, b: BigInt) =
   runnableExamples:
     var a = 15.initBigInt
     a *= 10.initBigInt
     assert a == 150.initBigInt
   a = a * b
 
-proc `shr`(x: BigInt, y: Natural): BigInt =
+func pow*(x: BigInt, y: Natural): BigInt =
+  ## Computes `x` to the power of `y`.
+  var base = x
+  var exp = y
+  result = one
+
+  # binary exponentiation
+  while exp > 0:
+    if (exp and 1) > 0:
+      result *= base
+    exp = exp shr 1
+    base *= base
+
+func `shl`*(x: BigInt, y: Natural): BigInt =
+  ## Shifts a `BigInt` to the left.
+  runnableExamples:
+    let a = 24.initBigInt
+    assert a shl 1 == 48.initBigInt
+    assert a shl 2 == 96.initBigInt
+
+  var carry = 0'u64
+  let a = y div 32
+  let b = uint32(y mod 32)
+  let mask = ((1'u64 shl b) - 1) shl (64 - b)
+  result.limbs.setLen(x.limbs.len + a)
+  result.isNegative = x.isNegative
+
+  for i in countup(0, x.limbs.high):
+    let acc = (uint64(x.limbs[i]) shl 32) or carry
+    carry = (acc and mask) shr 32
+    result.limbs[i + a] = uint32((acc shl b) shr 32)
+
+  if carry > 0:
+    result.limbs.add(uint32(carry shr (32 - b)))
+
+func `shr`*(x: BigInt, y: Natural): BigInt =
   ## Shifts a `BigInt` to the right (arithmetically).
   runnableExamples:
     let a = 24.initBigInt
@@ -272,22 +516,175 @@ proc `shr`(x: BigInt, y: Natural): BigInt =
     carry = acc and mask
     result.limbs[i - a] = uint32(acc shr b)
 
-  # if result.isNegative:
-  #   var underflow = false
-  #   if carry > 0:
-  #     underflow = true
-  #   else:
-  #     for i in 0 .. a - 1:
-  #       if x.limbs[i] > 0:
-  #         underflow = true
-  #         break
+  if result.isNegative:
+    var underflow = false
+    if carry > 0:
+      underflow = true
+    else:
+      for i in 0 .. a - 1:
+        if x.limbs[i] > 0:
+          underflow = true
+          break
 
-  #   if underflow:
-  #     dec result
+    if underflow:
+      dec result
 
-  result.normalize()
+  if result.limbs.len > 1 and result.limbs[result.limbs.high] == 0:
+    # normalize
+    result.limbs.setLen(result.limbs.high)
 
-proc unsignedDivRem(q: var BigInt, r: var uint32, n: BigInt, d: uint32) =
+
+# bitwise operations
+
+func invertIn(a: BigInt): BigInt {.inline.} =
+  result = a
+  result.isNegative = false
+  dec(result)
+
+func invertOut(a: var BigInt) {.inline.} =
+  inc(a)
+  a.isNegative = true
+
+func `not`*(a: BigInt): BigInt =
+  ## Bitwise `not` for `BigInt`s.
+  # 2's complement: -x = not x + 1 <=> not x = -x - 1 = -(x + 1)
+  result = succ(a)
+  negate(result)
+
+func `and`*(a, b: BigInt): BigInt =
+  ## Bitwise `and` for `BigInt`s.
+  if a.isNegative and not a.isZero:
+    if b.isNegative and not b.isZero:
+      # - and -
+      let a = invertIn(a)
+      let b = invertIn(b)
+      result.limbs.setLen(max(a.limbs.len, b.limbs.len))
+      let m = min(a.limbs.len, b.limbs.len)
+      for i in 0 ..< m:
+        result.limbs[i] = a.limbs[i] or b.limbs[i]
+      for i in m ..< a.limbs.len:
+        result.limbs[i] = a.limbs[i]
+      for i in m ..< b.limbs.len:
+        result.limbs[i] = b.limbs[i]
+      invertOut(result)
+    else:
+      # - and +
+      let a = invertIn(a)
+      result = b
+      for i in 0 ..< min(a.limbs.len, b.limbs.len):
+        result.limbs[i] = (not a.limbs[i]) and b.limbs[i]
+  else:
+    if b.isNegative and not b.isZero:
+      # + and -
+      let b = invertIn(b)
+      result = a
+      for i in 0 ..< min(a.limbs.len, b.limbs.len):
+        result.limbs[i] = a.limbs[i] and (not b.limbs[i])
+    else:
+      # + and +
+      result.limbs.setLen(min(a.limbs.len, b.limbs.len))
+      for i in 0 ..< result.limbs.len:
+        result.limbs[i] = a.limbs[i] and b.limbs[i]
+  normalize(result)
+
+func `or`*(a, b: BigInt): BigInt =
+  ## Bitwise `or` for `BigInt`s.
+  if a.isNegative and not a.isZero:
+    if b.isNegative and not b.isZero:
+      # - or -
+      let a = invertIn(a)
+      let b = invertIn(b)
+      result.limbs.setLen(min(a.limbs.len, b.limbs.len))
+      for i in 0 ..< result.limbs.len:
+        result.limbs[i] = a.limbs[i] and b.limbs[i]
+      invertOut(result)
+    else:
+      # - or +
+      let a = invertIn(a)
+      result = a
+      for i in 0 ..< min(a.limbs.len, b.limbs.len):
+        result.limbs[i] = a.limbs[i] and (not b.limbs[i])
+      invertOut(result)
+  else:
+    if b.isNegative and not b.isZero:
+      # + or -
+      let b = invertIn(b)
+      result = b
+      for i in 0 ..< min(a.limbs.len, b.limbs.len):
+        result.limbs[i] = (not a.limbs[i]) and b.limbs[i]
+      invertOut(result)
+    else:
+      # + or +
+      result.limbs.setLen(max(a.limbs.len, b.limbs.len))
+      let m = min(a.limbs.len, b.limbs.len)
+      for i in 0 ..< m:
+        result.limbs[i] = a.limbs[i] or b.limbs[i]
+      for i in m ..< a.limbs.len:
+        result.limbs[i] = a.limbs[i]
+      for i in m ..< b.limbs.len:
+        result.limbs[i] = b.limbs[i]
+  normalize(result)
+
+func `xor`*(a, b: BigInt): BigInt =
+  ## Bitwise `xor` for `BigInt`s.
+  if a.isNegative and not a.isZero:
+    if b.isNegative and not b.isZero:
+      # - xor -
+      let a = invertIn(a)
+      let b = invertIn(b)
+      result.limbs.setLen(max(a.limbs.len, b.limbs.len))
+      let m = min(a.limbs.len, b.limbs.len)
+      for i in 0 ..< m:
+        result.limbs[i] = a.limbs[i] xor b.limbs[i]
+      for i in m ..< a.limbs.len:
+        result.limbs[i] = a.limbs[i]
+      for i in m ..< b.limbs.len:
+        result.limbs[i] = b.limbs[i]
+    else:
+      # - xor +
+      let a = invertIn(a)
+      result.limbs.setLen(max(a.limbs.len, b.limbs.len))
+      let m = min(a.limbs.len, b.limbs.len)
+      for i in 0 ..< m:
+        result.limbs[i] = a.limbs[i] xor b.limbs[i]
+      for i in m ..< a.limbs.len:
+        result.limbs[i] = a.limbs[i]
+      for i in m ..< b.limbs.len:
+        result.limbs[i] = b.limbs[i]
+      invertOut(result)
+  else:
+    if b.isNegative and not b.isZero:
+      # + xor -
+      let b = invertIn(b)
+      result.limbs.setLen(max(a.limbs.len, b.limbs.len))
+      let m = min(a.limbs.len, b.limbs.len)
+      for i in 0 ..< m:
+        result.limbs[i] = a.limbs[i] xor b.limbs[i]
+      for i in m ..< a.limbs.len:
+        result.limbs[i] = a.limbs[i]
+      for i in m ..< b.limbs.len:
+        result.limbs[i] = b.limbs[i]
+      invertOut(result)
+    else:
+      # + xor +
+      result.limbs.setLen(max(a.limbs.len, b.limbs.len))
+      let m = min(a.limbs.len, b.limbs.len)
+      for i in 0 ..< m:
+        result.limbs[i] = a.limbs[i] xor b.limbs[i]
+      for i in m ..< a.limbs.len:
+        result.limbs[i] = a.limbs[i]
+      for i in m ..< b.limbs.len:
+        result.limbs[i] = b.limbs[i]
+  normalize(result)
+
+
+func reset(a: var BigInt) =
+  ## Resets a `BigInt` back to the zero value.
+  a.limbs.setLen(1)
+  a.limbs[0] = 0
+  a.isNegative = false
+
+func unsignedDivRem(q: var BigInt, r: var uint32, n: BigInt, d: uint32) =
   q.limbs.setLen(n.limbs.len)
   r = 0
   for i in countdown(n.limbs.high, 0):
@@ -296,7 +693,297 @@ proc unsignedDivRem(q: var BigInt, r: var uint32, n: BigInt, d: uint32) =
     r = uint32(tmp mod d)
   normalize(q)
 
-proc calcSizes(): array[2..36, int] =
+func bits(d: uint32): int =
+  const bitLengths = [0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4,
+                      5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5]
+  var d = d
+  while d >= 32'u32:
+    result += 6
+    d = d shr 6
+  result += bitLengths[int(d)]
+
+# From Knuth and Python
+func unsignedDivRem(q, r: var BigInt, n, d: BigInt) =
+  var
+    nn = n.limbs.len
+    dn = d.limbs.len
+
+  if n.isZero:
+    q = zero
+    r = zero
+  elif nn < dn:
+    # n < d
+    q = zero
+    r = n
+  elif dn == 1:
+    var x: uint32
+    unsignedDivRem(q, x, n, d.limbs[0])
+    r.limbs = @[x]
+    r.isNegative = false
+  else:
+    assert nn >= dn and dn >= 2
+
+    # normalize
+    let ls = 32 - bits(d.limbs[d.limbs.high])
+    r = d shl ls
+    q = n shl ls
+    if q.limbs.len > n.limbs.len or q.limbs[q.limbs.high] >= r.limbs[r.limbs.high]:
+      q.limbs.add(0'u32)
+      inc(nn)
+
+    let k = nn - dn
+    assert k >= 0
+    var a: BigInt
+    a.limbs.setLen(k)
+    let wm1 = r.limbs[r.limbs.high]
+    let wm2 = r.limbs[r.limbs.high-1]
+    var ak = k
+
+    var zhi = zero
+    var z = zero
+    var qib = zero
+    var q1b = zero
+
+    for v in countdown(k-1, 0):
+      # estimate quotient digit, may rarely overestimate by 1
+      let vtop = q.limbs[v + dn]
+      assert vtop <= wm1
+      let vv = (uint64(vtop) shl 32) or q.limbs[v+dn-1]
+      var q1 = vv div wm1
+      var r1 = vv mod wm1
+
+      while (wm2 * q1) > ((r1 shl 32) or q.limbs[v+dn-2]):
+        dec q1
+        r1 += wm1
+        if r1 > uint32.high:
+          break
+
+      assert q1 <= uint32.high
+
+      q1b.limbs[0] = uint32(q1)
+
+      # subtract
+      zhi.reset()
+      for i in 0 ..< dn:
+        z.reset()
+        z.limbs[0] = r.limbs[i]
+        z *= q1b
+        z.isNegative = true
+        z += zhi
+        var z1 = z
+        qib.limbs[0] = q.limbs[v+i]
+        z += qib
+
+        if z < 0:
+          q.limbs[v+i] = not z.limbs[0] + 1
+        else:
+          q.limbs[v+i] = z.limbs[0]
+
+        if z.limbs.len > 1:
+          zhi.limbs[0] = z1.limbs[1]
+          if z1.limbs[0] > qib.limbs[0]:
+            zhi.limbs[0] += 1
+          zhi.isNegative = true
+        elif z < 0:
+          zhi.limbs[0] = 1
+          zhi.isNegative = true
+        else:
+          zhi.reset()
+
+      # add back if was too large (rare branch)
+      if vtop.initBigInt + zhi < 0:
+        var carry = 0'u64
+        for i in 0 ..< dn:
+          carry += q.limbs[v+i]
+          carry += r.limbs[i]
+          q.limbs[v+i] = uint32(carry and uint32.high)
+          carry = carry shr 32
+        dec(q1)
+
+      # store quotient digit
+      assert q1 <= uint32.high
+      dec(ak)
+      a.limbs[ak] = uint32(q1)
+
+    # unshift remainder, we reuse w1 to store the result
+    q.limbs.setLen(dn)
+    r = q shr ls
+
+    normalize(r)
+    q = a
+    normalize(q)
+
+func division(q, r: var BigInt, n, d: BigInt) =
+  # q = n div d
+  # r = n mod d
+  if d.isZero:
+    raise newException(DivByZeroDefect, "division by zero")
+
+  unsignedDivRem(q, r, n, d)
+
+  q.isNegative = n < 0 xor d < 0
+  r.isNegative = n < 0 and r != 0
+
+  # divrem -> divmod
+  if (r < 0 and d > 0) or (r > 0 and d < 0):
+    r += d
+    q -= one
+
+func `div`*(a, b: BigInt): BigInt =
+  ## Computes the integer division of two `BigInt` numbers.
+  ## Raises a `DivByZeroDefect` if `b` is zero.
+  ##
+  ## If you also need the modulo (remainder), use the `divmod func <#divmod,BigInt,BigInt>`_.
+  runnableExamples:
+    let
+      a = 17.initBigInt
+      b = 5.initBigInt
+    assert a div b == 3.initBigInt
+    assert (-a) div b == -4.initBigInt
+    assert a div (-b) == -4.initBigInt
+    assert (-a) div (-b) == 3.initBigInt
+  var tmp: BigInt
+  division(result, tmp, a, b)
+
+func `mod`*(a, b: BigInt): BigInt =
+  ## Computes the integer modulo (remainder) of two `BigInt` numbers.
+  ## Raises a `DivByZeroDefect` if `b` is zero.
+  ##
+  ## If you also need an integer division, use the `divmod func <#divmod,BigInt,BigInt>`_.
+  runnableExamples:
+    let
+      a = 17.initBigInt
+      b = 5.initBigInt
+    assert a mod b == 2.initBigInt
+    assert (-a) mod b == 3.initBigInt
+    assert a mod (-b) == -3.initBigInt
+    assert (-a) mod (-b) == -2.initBigInt
+  var tmp: BigInt
+  division(tmp, result, a, b)
+
+func divmod*(a, b: BigInt): tuple[q, r: BigInt] =
+  ## Computes both the integer division and modulo (remainder) of two
+  ## `BigInt` numbers.
+  ## Raises a `DivByZeroDefect` if `b` is zero.
+  runnableExamples:
+    let
+      a = 17.initBigInt
+      b = 5.initBigInt
+    assert divmod(a, b) == (3.initBigInt, 2.initBigInt)
+  division(result.q, result.r, a, b)
+
+func countTrailingZeroBits(a: BigInt): int =
+  var count = 0
+  for x in a.limbs:
+    if x == 0:
+      count += 32
+    else:
+      return count + countTrailingZeroBits(x)
+  return count
+
+func gcd*(a, b: BigInt): BigInt =
+  ## Returns the greatest common divisor (GCD) of `a` and `b`.
+  runnableExamples:
+    assert gcd(54.initBigInt, 24.initBigInt) == 6.initBigInt
+
+  # binary GCD algorithm
+  var
+    u = abs(a)
+    v = abs(b)
+  if u.isZero:
+    return v
+  elif v.isZero:
+    return u
+  let
+    i = countTrailingZeroBits(u)
+    j = countTrailingZeroBits(v)
+    k = min(i, j)
+  u = u shr i
+  v = v shr j
+  while true:
+    # u and v are odd
+    if u > v:
+      swap(u, v)
+    v -= u
+    if v.isZero:
+      return u shl k
+    v = v shr countTrailingZeroBits(v)
+
+
+func toInt*[T: SomeInteger](x: BigInt): Option[T] =
+  ## Converts a `BigInt` number to an integer, if possible.
+  ## If the `BigInt` doesn't fit in a `T`, returns `none(T)`;
+  ## otherwise returns `some(x)`.
+  runnableExamples:
+    import std/options
+    let
+      a = 44.initBigInt
+      b = 130.initBigInt
+    assert toInt[int8](a) == some(44'i8)
+    assert toInt[int8](b) == none(int8)
+    assert toInt[uint8](b) == some(130'u8)
+    assert toInt[int](b) == some(130)
+
+  if x.isZero:
+    return some(default(T)) # default(T) is 0
+  when T is SomeSignedInt:
+    # T is signed
+    when sizeof(T) == 8:
+      if x.limbs.len > 2:
+        result = none(T)
+      elif x.limbs.len == 2:
+        if x.isNegative:
+          if x.limbs[1] > uint32(int32.high) + 1 or (x.limbs[1] == uint32(int32.high) + 1 and x.limbs[0] > 0):
+            result = none(T)
+          else:
+            let value = not T(x.limbs[1].uint64 shl 32 + x.limbs[0] - 1)
+            result = some(value)
+        else:
+          if x.limbs[1] > uint32(int32.high):
+            result = none(T)
+          else:
+            let value = T(x.limbs[1].uint64 shl 32 + x.limbs[0])
+            result = some(value)
+      else:
+        if x.isNegative:
+          result = some(not T(x.limbs[0] - 1))
+        else:
+          result = some(T(x.limbs[0]))
+    else:
+      if x.limbs.len > 1:
+        result = none(T)
+      else:
+        if x.isNegative:
+          if x.limbs[0] > uint32(T.high) + 1:
+            result = none(T)
+          else:
+            result = some(not T(x.limbs[0] - 1))
+        else:
+          if x.limbs[0] > uint32(T.high):
+            result = none(T)
+          else:
+            result = some(T(x.limbs[0]))
+  else:
+    # T is unsigned
+    if x.isNegative:
+      return none(T)
+    when sizeof(T) == 8:
+      if x.limbs.len > 2:
+        result = none(T)
+      elif x.limbs.len == 2:
+        let value = T(x.limbs[1]) shl 32 + T(x.limbs[0])
+        result = some(value)
+      else:
+        result = some(T(x.limbs[0]))
+    else:
+      if x.limbs.len > 1:
+        result = none(T)
+      elif x.limbs[0] > uint32(T.high):
+        result = none(T)
+      else:
+        result = some(T(x.limbs[0]))
+
+func calcSizes(): array[2..36, int] =
   for i in 2..36:
     var x = int64(i)
     while x <= int64(uint32.high) + 1:
@@ -308,7 +995,7 @@ const
   powers = {2'u8, 4, 8, 16, 32}
   sizes = calcSizes() # `sizes[base]` is the maximum number of digits that fully fit in a `uint32`
 
-proc toString*(a: BigInt, base: range[2..36] = 10): string =
+func toString*(a: BigInt, base: range[2..36] = 10): string =
   ## Produces a string representation of a `BigInt` in a specified
   ## `base`.
   ##
@@ -373,11 +1060,11 @@ proc toString*(a: BigInt, base: range[2..36] = 10): string =
 
   result.reverse()
 
-proc `$`*(a: BigInt): string =
+func `$`*(a: BigInt): string =
   ## String representation of a `BigInt` in base 10.
   toString(a, 10)
 
-proc parseDigit(c: char, base: uint32): uint32 {.inline.} =
+func parseDigit(c: char, base: uint32): uint32 {.inline.} =
   result = case c
     of '0'..'9': uint32(ord(c) - ord('0'))
     of 'a'..'z': uint32(ord(c) - ord('a') + 10)
@@ -387,7 +1074,7 @@ proc parseDigit(c: char, base: uint32): uint32 {.inline.} =
   if result >= base:
     raise newException(ValueError, "Invalid input: " & c)
 
-proc filterUnderscores(str: var string) {.inline.} =
+func filterUnderscores(str: var string) {.inline.} =
   var k = 0 # the amount of underscores
   for i in 0 .. str.high:
     let c = str[i]
@@ -397,7 +1084,7 @@ proc filterUnderscores(str: var string) {.inline.} =
       str[i - k] = c
   str.setLen(str.len - k)
 
-proc initBigInt*(str: string, base: range[2..36] = 10): BigInt =
+func initBigInt*(str: string, base: range[2..36] = 10): BigInt =
   ## Create a `BigInt` from a string. For invalid inputs, a `ValueError` exception is raised.
   runnableExamples:
     let
@@ -474,55 +1161,129 @@ proc initBigInt*(str: string, base: range[2..36] = 10): BigInt =
 
   result.isNegative = neg
 
-################################################################################
+func inc*(a: var BigInt, b: int = 1) =
+  ## Increase the value of a `BigInt` by the specified amount (default: 1).
+  runnableExamples:
+    var a = 15.initBigInt
+    inc a
+    assert a == 16.initBigInt
+    inc(a, 7)
+    assert a == 23.initBigInt
 
-{.push checks: off.}
+  if b in int32.low..int32.high:
+    var c = a
+    additionInt(a, c, b.int32)
+  else:
+    a += initBigInt(b)
 
-proc realUnsignedSubtraction2(a: var BigInt, c: BigInt) {.inline.} =
-  # In-place subtraction
-  # a > c
-  let
-    al = a.limbs.len
-    cl = c.limbs.len
-  var m = min(al, cl)
-  a.limbs.setLen(max(al, cl))
+func dec*(a: var BigInt, b: int = 1) =
+  ## Decrease the value of a `BigInt` by the specified amount (default: 1).
+  runnableExamples:
+    var a = 15.initBigInt
+    dec a
+    assert a == 14.initBigInt
+    dec(a, 5)
+    assert a == 9.initBigInt
 
-  var tmp = 0'i64
-  for i in 0 ..< m:
-    tmp = int64(uint32.high) + 1 + int64(a.limbs[i]) - int64(c.limbs[i]) - tmp
-    a.limbs[i] = uint32(tmp and int64(uint32.high))
-    tmp = 1 - (tmp shr 32)
-  for i in m ..< al:
-    tmp = int64(uint32.high) + 1 + int64(a.limbs[i]) - tmp
-    a.limbs[i] = uint32(tmp and int64(uint32.high))
-    tmp = 1 - (tmp shr 32)
-  a.isNegative = false
+  if b in int32.low..int32.high:
+    var c = a
+    subtractionInt(a, c, b.int32)
+  else:
+    a -= initBigInt(b)
 
-  normalize(a)
-  # assert tmp == 0
-
-proc modulo(a, b: BigInt, memoized: var seq[BigInt]): BigInt =
-  # Binary-search-ish modulo
+func succ*(a: BigInt, b: int = 1): BigInt =
+  ## Returns the `b`-th successor of a `BigInt`.
   result = a
+  inc(result, b)
 
-  var sl: int
-  block:
-    var s = b
-    while result > s:
-      if sl == memoized.len:
-        memoized.add(s)
-        s *= two
-      else:
-        s = memoized[sl]
-      inc sl
+func pred*(a: BigInt, b: int = 1): BigInt =
+  ## Returns the `b`-th predecessor of a `BigInt`.
+  result = a
+  dec(result, b)
 
-  for i in countdown(sl - 1, 0):
-    if result > memoized[i]:
-      realUnsignedSubtraction2(result, memoized[i])
 
-proc powmod*(base, exponent, modulus: BigInt): BigInt =
+iterator countup*(a, b: BigInt, step: int32 = 1): BigInt =
+  ## Counts from `a` up to `b` (inclusive) with the given step count.
+  var res = a
+  while res <= b:
+    yield res
+    inc(res, step)
+
+iterator countdown*(a, b: BigInt, step: int32 = 1): BigInt =
+  ## Counts from `a` down to `b` (inclusive) with the given step count.
+  var res = a
+  while res >= b:
+    yield res
+    dec(res, step)
+
+iterator `..`*(a, b: BigInt): BigInt =
+  ## Counts from `a` up to `b` (inclusive).
+  var res = a
+  while res <= b:
+    yield res
+    inc res
+
+iterator `..<`*(a, b: BigInt): BigInt =
+  ## Counts from `a` up to `b` (exclusive).
+  var res = a
+  while res < b:
+    yield res
+    inc res
+
+
+func modulo(a, modulus: BigInt): BigInt =
+  ## Like `mod`, but the result is always in the range `[0, modulus-1]`.
+  ## `modulus` should be greater than zero.
+  result = a mod modulus
+  if result < 0:
+    result += modulus
+
+func fastLog2*(a: BigInt): int =
+  ## Computes the logarithm in base 2 of `a`.
+  ## If `a` is negative, returns the logarithm of `abs(a)`.
+  ## If `a` is zero, returns -1.
+  if a.isZero:
+    return -1
+  bitops.fastLog2(a.limbs[^1]) + 32*(a.limbs.high)
+
+
+func invmod*(a, modulus: BigInt): BigInt =
+  ## Compute the modular inverse of `a` modulo `modulus`.
+  ## The return value is always in the range `[1, modulus-1]`
+  runnableExamples:
+    assert invmod(3.initBigInt, 7.initBigInt) == 5.initBigInt
+
+  # extended Euclidean algorithm
+  if modulus.isZero:
+    raise newException(DivByZeroDefect, "modulus must be nonzero")
+  elif modulus.isNegative:
+    raise newException(ValueError, "modulus must be strictly positive")
+  elif a.isZero:
+    raise newException(DivByZeroDefect, "0 has no modular inverse")
+  else:
+    var
+      r0 = modulus
+      r1 = a.modulo(modulus)
+      t0 = zero
+      t1 = one
+    var rk, tk: BigInt # otherwise t1 is incorrectly inferred as cursor (https://github.com/nim-lang/Nim/issues/19457)
+    while r1 > 0:
+      let q = r0 div r1
+      rk = r0 - q * r1
+      tk = t0 - q * t1
+      r0 = r1
+      r1 = rk
+      t0 = t1
+      t1 = tk
+    if r0 != one:
+      raise newException(ValueError, $a & " has no modular inverse modulo " & $modulus)
+    result = t0.modulo(modulus)
+
+func powmod*(base, exponent, modulus: BigInt): BigInt =
   ## Compute modular exponentation of `base` with power `exponent` modulo `modulus`.
   ## The return value is always in the range `[0, modulus-1]`.
+  runnableExamples:
+    assert powmod(2.initBigInt, 3.initBigInt, 7.initBigInt) == 1.initBigInt
   if modulus.isZero:
     raise newException(DivByZeroDefect, "modulus must be nonzero")
   elif modulus.isNegative:
@@ -533,13 +1294,13 @@ proc powmod*(base, exponent, modulus: BigInt): BigInt =
     var
       base = base
       exponent = exponent
-      memoized: seq[BigInt]
-    base = modulo(base, modulus, memoized)
+    if exponent < 0:
+      base = invmod(base, modulus)
+      exponent = -exponent
+    var basePow = base.modulo(modulus)
     result = one
     while not exponent.isZero:
       if (exponent.limbs[0] and 1) != 0:
-        result = modulo((result * base), modulus, memoized)
-      base = modulo((base * base), modulus, memoized)
+        result = (result * basePow) mod modulus
+      basePow = (basePow * basePow) mod modulus
       exponent = exponent shr 1
-
-{.pop.}

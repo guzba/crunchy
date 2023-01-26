@@ -39,3 +39,5 @@ block:
   let pk = decodePrivateKey(readFile("/Users/me/Documents/GitHub/crunchy/tests/data/2048.txt"))
   timeIt "powmod":
     discard pk.p.powmod(pk.d, pk.n)
+  timeIt "sign":
+    discard pk.sign("message")
