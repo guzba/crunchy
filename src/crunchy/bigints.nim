@@ -7,6 +7,8 @@
 
 import std/[algorithm, bitops, math, options]
 
+{.push stackTrace:off.}
+
 type
   BigInt* = object
     ## An arbitrary precision integer.
@@ -1353,4 +1355,5 @@ func powmod*(base, exponent, modulus: BigInt): BigInt =
       basePow = mymod((basePow * basePow), modulus, memoized)
       exponent = exponent shr 1
 
+{.pop.}
 {.pop.}
