@@ -1,6 +1,19 @@
 import crunchy/rsa, std/base64, std/strutils
 
 block:
+  var pk: RsaPrivateKey
+  pk.size = 1024
+  pk.n = initBigInt(5)
+  pk.d = initBigInt(5)
+  pk.p = initBigInt(5)
+  pk.q = initBigInt(5)
+  pk.e1 = initBigInt(5)
+  pk.e2 = initBigInt(5)
+  pk.coef = initBigInt(5)
+
+  discard pk.sign("test")
+
+block:
   let pk1024 = decodePrivateKey(readFile("tests/data/1024.txt"))
   doAssert pk1024.size == 1024
   doAssert pk1024.n.toString(16).toUpperAscii() ==
