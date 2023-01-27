@@ -49,7 +49,31 @@ proc sign*(pk: RsaPrivateKey, message: string): string =
   # Without CRT
   # let m = c.powmod(pk.d, pk.n)
 
-  return parseHexStr(m.toString(16))
+  # Temporary fix for bigints toString(16) producing undesirable hex output
+  var hex = m.toString(16)
+  case pk.size:
+  of 1024:
+    if hex.len < 256:
+      var prefix = newString(256 - hex.len)
+      for i in 0 ..< prefix.len:
+        prefix[i] = '0'
+      hex = prefix & hex
+  of 2048:
+    if hex.len < 512:
+      var prefix = newString(256 - hex.len)
+      for i in 0 ..< prefix.len:
+        prefix[i] = '0'
+      hex = prefix & hex
+  of 4096:
+    if hex.len < 1024:
+      var prefix = newString(256 - hex.len)
+      for i in 0 ..< prefix.len:
+        prefix[i] = '0'
+      hex = prefix & hex
+  else:
+    discard
+
+  return parseHexStr(hex)
 
 template raisePrivateKeyError() =
   raise newException(CrunchyError, "RSA private key data appears invalid")
