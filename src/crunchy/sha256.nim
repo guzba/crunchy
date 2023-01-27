@@ -152,7 +152,7 @@ proc hmacSha256*(key, data: openarray[uint8]): array[32, uint8] =
   if key.len > blockSize:
     let hash = sha256(key)
     copyMem(blockSizeKey[0].addr, hash[0].unsafeAddr, hash.len)
-  else:
+  elif key.len > 0:
     copyMem(blockSizeKey[0].addr, key[0].unsafeAddr, key.len)
 
   proc applyXor(s: array[64, uint8], value: uint8): array[64, uint8] =
