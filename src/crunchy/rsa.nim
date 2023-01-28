@@ -99,23 +99,7 @@ proc decodeBigInt(buf: string, pos: var int): BigInt =
   result = initBigInt(buf[pos ..< pos + len].toHex(), base = 16)
   pos += len
 
-proc decodePrivateKey*(s: string): RsaPrivateKey =
-  var lines = s.split('\n')
-
-  if lines[lines.high] == "":
-    discard lines.pop()
-
-  if lines.len == 0:
-    raisePrivateKeyError()
-
-  if lines[0].startsWith('-'):
-    # Trim off -----BEGIN RSA PRIVATE KEY-----, -----END RSA PRIVATE KEY-----
-    lines = lines[1 ..< ^1]
-
-  let buf = decode(lines.join())
-
-  var pos: int
-
+proc skipToPrivateKeyValues(buf: string, pos: var int) =
   if pos + 2 > buf.len:
     raisePrivateKeyError()
 
@@ -202,6 +186,32 @@ proc decodePrivateKey*(s: string): RsaPrivateKey =
     if buf[pos] != 0x00.char:
       raisePrivateKeyError()
     inc pos
+
+proc decodePrivateKey*(s: string): RsaPrivateKey =
+  var lines = s.split('\n')
+
+  # Ignore any newlines at the end of the key
+  if lines[lines.high] == "":
+    discard lines.pop()
+
+  # Ignore any newlines before the start of the key
+  while lines.len > 0:
+    if lines[0] == "":
+      lines.delete(0)
+    else:
+      break
+
+  if lines.len == 0:
+    raisePrivateKeyError()
+
+  if lines[0].startsWith('-'):
+    # Trim off -----BEGIN RSA PRIVATE KEY-----, -----END RSA PRIVATE KEY-----
+    lines = lines[1 ..< ^1]
+
+  let buf = decode(lines.join())
+
+  var pos: int
+  skipToPrivateKeyValues(buf, pos)
 
   # PKCS#1 private key values start here
 
