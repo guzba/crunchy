@@ -60,13 +60,13 @@ proc sign*(pk: RsaPrivateKey, message: string): string =
       hex = prefix & hex
   of 2048:
     if hex.len < 512:
-      var prefix = newString(256 - hex.len)
+      var prefix = newString(512 - hex.len)
       for i in 0 ..< prefix.len:
         prefix[i] = '0'
       hex = prefix & hex
   of 4096:
     if hex.len < 1024:
-      var prefix = newString(256 - hex.len)
+      var prefix = newString(1024 - hex.len)
       for i in 0 ..< prefix.len:
         prefix[i] = '0'
       hex = prefix & hex
