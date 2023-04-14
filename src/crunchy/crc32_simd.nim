@@ -5,7 +5,7 @@ when defined(amd64):
   import nimsimd/sse41, nimsimd/pclmulqdq
 
   when defined(gcc) or defined(clang):
-    {.localPassc: "-msse4.1 -mpclmul".}
+    {.localPassC: "-msse4.1 -mpclmul".}
 
   # Computes the crc32 of the buffer, where the buffer
   # length must be at least 64, and a multiple of 16. Based on

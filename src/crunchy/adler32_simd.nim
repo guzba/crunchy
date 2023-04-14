@@ -18,7 +18,7 @@ when defined(amd64):
   import nimsimd/ssse3
 
   when defined(gcc) or defined(clang):
-    {.localPassc: "-mssse3".}
+    {.localPassC: "-mssse3".}
 
   proc adler32_ssse3*(src: pointer, len: int): uint32 =
     if len <= 0:

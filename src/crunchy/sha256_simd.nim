@@ -5,7 +5,7 @@ when defined(amd64):
   import nimsimd/sse41
 
   when defined(gcc) or defined(clang):
-    {.localPassc: "-msse4.1 -msha".}
+    {.localPassC: "-msse4.1 -msha".}
 
   {.push header: "immintrin.h".}
   proc mm_sha256msg1_epu32(a, b: M128i): M128i {.importc: "_mm_sha256msg1_epu32".}

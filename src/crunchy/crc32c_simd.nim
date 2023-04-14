@@ -5,7 +5,7 @@ when defined(amd64):
   import nimsimd/sse42
 
   when defined(gcc) or defined(clang):
-    {.localPassc: "-msse4.2".}
+    {.localPassC: "-msse4.2".}
 
   proc crc32c_sse42*(src: pointer, len: int): uint32 =
     let src = cast[ptr UncheckedArray[uint8]](src)
