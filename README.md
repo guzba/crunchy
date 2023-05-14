@@ -4,7 +4,7 @@
 
 `nimble install crunchy`
 
-[API reference](https://nimdocs.com/guzba/crunchy)
+[API reference](https://guzba.github.io/crunchy/)
 
 ## About
 
