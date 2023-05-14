@@ -1,0 +1,1 @@
+x64sha256	crunchy/sha256_simd.html#x64sha256,array[,uint32],string	sha256_simd: x64sha256(state: var array[8, uint32]; data: string)	

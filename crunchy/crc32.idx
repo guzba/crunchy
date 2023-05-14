@@ -1,0 +1,3 @@
+crc32	crunchy/crc32.html#crc32,pointer,int	crc32: crc32(src: pointer; len: int): uint32	
+crc32	crunchy/crc32.html#crc32,openArray[byte]	crc32: crc32(data: openArray[byte]): uint32	
+crc32	crunchy/crc32.html#crc32,string	crc32: crc32(data: string): uint32	

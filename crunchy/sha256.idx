@@ -1,0 +1,9 @@
+sha256	crunchy/sha256.html#sha256,pointer,int	sha256: sha256(src: pointer; len: int): array[32, uint8]	
+sha256	crunchy/sha256.html#sha256,openArray[byte]	sha256: sha256(data: openArray[byte]): array[32, uint8]	
+sha256	crunchy/sha256.html#sha256,string	sha256: sha256(data: string): array[32, uint8]	
+hmacSha256	crunchy/sha256.html#hmacSha256,openArray[uint8],openArray[uint8]	sha256: hmacSha256(key, data: openArray[uint8]): array[32, uint8]	
+hmacSha256	crunchy/sha256.html#hmacSha256,string,string	sha256: hmacSha256(key, data: string): array[32, uint8]	
+hmacSha256	crunchy/sha256.html#hmacSha256,string,openArray[byte]	sha256: hmacSha256(key: string; data: openArray[byte]): array[32, uint8]	
+hmacSha256	crunchy/sha256.html#hmacSha256,openArray[byte],string	sha256: hmacSha256(key: openArray[byte]; data: string): array[32, uint8]	
+pbkdf2	crunchy/sha256.html#pbkdf2,string,string,int	sha256: pbkdf2(password, salt: string; iterations: int): array[32, uint8]	
+toHex	crunchy/sha256.html#toHex,array[,uint8]	sha256: toHex(a: array[32, uint8]): string	
