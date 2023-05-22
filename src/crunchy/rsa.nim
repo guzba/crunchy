@@ -6,6 +6,8 @@ type RsaPrivateKey* = object
   size*: int ## In bits, eg 1024, 2048, 4096
   n*, e*, d*, p*, q*, e1*, e2*, coef*: BigInt
 
+import ../tests/exp_montgomery
+
 proc sign*(pk: RsaPrivateKey, message: string): string =
   ## RSASSA-PKCS1-v1_5 using SHA-256
 
@@ -37,17 +39,52 @@ proc sign*(pk: RsaPrivateKey, message: string): string =
 
   copyMem(padded[padded.len - 32].addr, hash[0].unsafeAddr, 32)
 
+  # using plain powmod
   let
     c = initBigInt(padded.toHex(), base = 16)
-    # CRT
-    pq = pk.p * pk.q
-    m1 = c.powmod(pk.e1, pk.p)
-    m2 = c.powmod(pk.e2, pk.q)
-    h = (pk.coef * (m1 - m2)) mod pk.p
-    m = (m2 + (h * pk.q)) mod pq
+    m = c.powmod(pk.d, pk.n)
 
-  # Without CRT
-  # let m = c.powmod(pk.d, pk.n)
+  # # using powmod + MR
+  # let
+  #   c = initBigInt(padded.toHex(), base = 16)
+  #   m = c.powmodMontgomery(pk.d, pk.n)
+
+  # Using CRT
+  # let
+  #   c = initBigInt(padded.toHex(), base = 16)
+  #   pq = pk.p * pk.q
+  #   m1 = c.powmod(pk.e1, pk.p)
+  #   m2 = c.powmod(pk.e2, pk.q)
+  #   h = (pk.coef * (m1 - m2)) mod pk.p
+  #   m = (m2 + (h * pk.q)) mod pq
+
+  # # Using CRT + MR
+  # let
+  #   c = initBigInt(padded.toHex(), base = 16)
+
+  #   m1 = c.powmod(pk.e1, pk.p)
+  #   m2 = c.powmod(pk.e2, pk.q)
+
+  #   # h = (pk.coef * (m1 - m2)) mod pk.p
+  #   r = chooseMontgomeryR(pk.p)
+  #   h = montgomeryProduct(pk.coef, (m1 - m2), pk.p, r)
+
+  #   pq = pk.p * pk.q
+  #   m = (m2 + (h * pk.q)) mod pq
+
+  # Using CRT + MR + bits
+  # let
+  #   c = initBigInt(padded.toHex(), base = 16)
+
+  #   m1 = c.powmod(pk.e1, pk.p)
+  #   m2 = c.powmod(pk.e2, pk.q)
+
+  #   # h = (pk.coef * (m1 - m2)) mod pk.p
+  #   RBits = chooseMontgomeryRBits(pk.p)
+  #   h = montgomeryProductBits(pk.coef, (m1 - m2), pk.p, RBits)
+
+  #   pq = pk.p * pk.q
+  #   m = (m2 + (h * pk.q)) mod pq
 
   # Temporary fix for bigints toString(16) producing undesirable hex output
   var hex = m.toString(16)

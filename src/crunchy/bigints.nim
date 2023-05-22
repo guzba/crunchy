@@ -15,9 +15,8 @@ type
     # Invariants for `a: BigInt`:
     # * if `a` is non-zero: `a.limbs[a.limbs.high] != 0`
     # * if `a` is zero: `a.limbs.len <= 1`
-    limbs: seq[uint32]
-    isNegative: bool
-
+    limbs*: seq[uint32]
+    isNegative*: bool
 
 # forward declarations
 func succ*(a: BigInt, b: int = 1): BigInt
@@ -84,8 +83,14 @@ const
   one = initBigInt(1)
   two = initBigInt(2)
 
-func isZero(a: BigInt): bool {.inline.} =
+func isZero*(a: BigInt): bool {.inline.} =
   a.limbs.len == 0 or (a.limbs.len == 1 and a.limbs[0] == 0)
+
+func isOdd*(a: BigInt): bool {.inline.} =
+  (a.limbs[0] and 1) != 0
+
+func isEven*(a: BigInt): bool {.inline.} =
+  not a.isOdd()
 
 func abs*(a: BigInt): BigInt =
   # Returns the absolute value of `a`.
@@ -884,6 +889,38 @@ func countTrailingZeroBits(a: BigInt): int =
       return count + countTrailingZeroBits(x)
   return count
 
+func totalBits*(a: BigInt): int =
+  ## Returns total number of bits needed to store the number
+  ## Does not include the sign bit
+  if a.limbs.len == 1 and a.limbs[0] == 0:
+    -1
+  else:
+    32 * a.limbs.len - countLeadingZeroBits(a.limbs[a.limbs.high])
+
+func keepBits*(x: BigInt, N: int): BigInt =
+  ## Only keep the lower N bits
+
+  for i in 0 ..< N div 32:
+    if i < x.limbs.len:
+      result.limbs.add(x.limbs[i])
+    else:
+      return
+
+  if N div 32 < x.limbs.len:
+    var mask: uint32 = 0
+    for i in 0 ..< N mod 32:
+      mask = mask shl 1 or 1
+    result.limbs.add(x.limbs[N div 32] and mask)
+
+  result.isNegative = x.isNegative
+  result.normalize()
+
+func modBits*(x: BigInt, N: int): BigInt =
+  ## do x mod 2^N
+  result = x.keepBits(N)
+  if result.isNegative:
+    result = (1.initBigInt shl N) + result
+
 func gcd*(a, b: BigInt): BigInt =
   ## Returns the greatest common divisor (GCD) of `a` and `b`.
   runnableExamples:
@@ -1233,7 +1270,6 @@ iterator `..<`*(a, b: BigInt): BigInt =
     yield res
     inc res
 
-
 func modulo(a, modulus: BigInt): BigInt =
   ## Like `mod`, but the result is always in the range `[0, modulus-1]`.
   ## `modulus` should be greater than zero.
@@ -1353,6 +1389,32 @@ func powmod*(base, exponent, modulus: BigInt): BigInt =
       if (exponent.limbs[0] and 1) != 0:
         result = mymod((result * basePow), modulus, memoized)
       basePow = mymod((basePow * basePow), modulus, memoized)
+      exponent = exponent shr 1
+
+func powmod_old*(base, exponent, modulus: BigInt): BigInt =
+  ## Compute modular exponentation of `base` with power `exponent` modulo `modulus`.
+  ## The return value is always in the range `[0, modulus-1]`.
+  runnableExamples:
+    assert powmod(2.initBigInt, 3.initBigInt, 7.initBigInt) == 1.initBigInt
+  if modulus.isZero:
+    raise newException(DivByZeroDefect, "modulus must be nonzero")
+  elif modulus.isNegative:
+    raise newException(ValueError, "modulus must be strictly positive")
+  elif modulus == 1:
+    return zero
+  else:
+    var
+      base = base
+      exponent = exponent
+    if exponent < 0:
+      base = invmod(base, modulus)
+      exponent = -exponent
+    var basePow = base.modulo(modulus)
+    result = one
+    while not exponent.isZero:
+      if (exponent.limbs[0] and 1) != 0:
+        result = (result * basePow) mod modulus
+      basePow = (basePow * basePow) mod modulus
       exponent = exponent shr 1
 
 {.pop.}
