@@ -38,19 +38,108 @@ when allowSimd:
 when defined(release):
   {.push checks: off.}
 
-proc sha256*(src: pointer, len: int): array[32, uint8] =
-  # This needs a pointer + len implementation that avoids copying the input
-  var data2: string
-  if len > 0:
-    data2.setLen(len)
-    copyMem(data2[0].addr, src, len)
+template do64(
+  src: ptr UncheckedArray[uint8],
+  pos: var int,
+  state: var array[8, uint32],
+  w: var array[64, uint32]
+) =
+  # Copy 64 bytes (16 uint32) into w from data
+  # This cannot just be a copyMem due to byte ordering
+  for i in 0 ..< 16:
+    var value: uint32
+    swapEndian32(value.addr, src[pos + i * 4].addr)
+    w[i] = value
 
-  data2.add 0b10000000.char
-  while data2.len mod 64 != 56:
-    data2.add 0.char
-  data2.setLen(data2.len + 8)
-  var L = len.uint64 * 8
-  swapEndian64(data2[data2.len - 8].addr, L.addr)
+  for i in 16 ..< 64:
+    let
+      s0 =
+        rotateRightBits(w[i - 15], 7) xor
+        rotateRightBits(w[i - 15], 18) xor
+        (w[i - 15] shr 3)
+      s1 =
+        rotateRightBits(w[i - 2], 17) xor
+        rotateRightBits(w[i - 2], 19) xor
+        (w[i - 2] shr 10)
+    w[i] = w[i - 16] + s0 + w[i - 7] + s1
+
+  var
+    a = state[0]
+    b = state[1]
+    c = state[2]
+    d = state[3]
+    e = state[4]
+    f = state[5]
+    g = state[6]
+    h = state[7]
+  for i in 0 ..< 64:
+    let
+      S1 =
+        rotateRightBits(e, 6) xor
+        rotateRightBits(e, 11) xor
+        rotateRightBits(e, 25)
+      ch = (e and f) xor ((not e) and g)
+      temp1 = h + S1 + ch + k[i] + w[i]
+      S0 =
+        rotateRightBits(a, 2) xor
+        rotateRightBits(a, 13) xor
+        rotateRightBits(a, 22)
+      maj = (a and b) xor (a and c) xor (b and c)
+      temp2 = S0 + maj
+    h = g
+    g = f
+    f = e
+    e = d + temp1
+    d = c
+    c = b
+    b = a
+    a = temp1 + temp2
+
+  state[0] += a
+  state[1] += b
+  state[2] += c
+  state[3] += d
+  state[4] += e
+  state[5] += f
+  state[6] += g
+  state[7] += h
+  pos += 64
+
+proc sha256*(src: pointer, len: int): array[32, uint8] =
+  let src = cast[ptr UncheckedArray[uint8]](src)
+
+  var
+    len1 = len
+    len2: int
+    last128: array[128, uint8]
+    L = len.uint64 * 8
+
+  if len <= 55:
+    len1 = 0
+    len2 = 64
+    if len > 0:
+      copyMem(last128[0].addr, src[0].addr, len)
+    last128[len] = 0b10000000
+    swapEndian64(last128[56].addr, L.addr)
+  elif len <= 119: # 56 <= len <= 119
+    len1 = 0
+    len2 = 128
+    copyMem(last128[0].addr, src[0].addr, len)
+    last128[len] = 0b10000000
+    swapEndian64(last128[120].addr, L.addr)
+  else: # len >= 120
+    let m = len mod 64
+    len1 = len - m
+    if m <= 55:
+      len2 = 64
+      copyMem(last128[0].addr, src[len1].addr, m)
+      last128[m] = 0b10000000
+      swapEndian64(last128[56].addr, L.addr)
+    else:
+      len2 = 128
+      copyMem(last128[0].addr, src[len1].addr, m)
+      last128[m] = 0b10000000
+      swapEndian64(last128[120].addr, L.addr)
 
   var state = [
     0x6a09e667'u32, 0xbb67ae85'u32, 0x3c6ef372'u32, 0xa54ff53a'u32,
@@ -60,7 +149,8 @@ proc sha256*(src: pointer, len: int): array[32, uint8] =
   var usedIntrinsics: bool
   when allowSimd and defined(amd64):
     if canUseIntrinsics:
-      x64sha256(state, data2)
+      let src2 = cast[ptr UncheckedArray[uint8]](last128[0].addr)
+      x64sha256(state, src, len1, src2, len2)
       usedIntrinsics = true
 
   if not usedIntrinsics:
@@ -68,67 +158,14 @@ proc sha256*(src: pointer, len: int): array[32, uint8] =
     var
       pos: int
       w: array[64, uint32]
-    for _ in 0 ..< data2.len div 64:
-      # Copy 64 bytes (16 uint32) into w from data
-      # This cannot just be a copyMem due to byte ordering
-      for i in 0 ..< 16:
-        var value: uint32
-        swapEndian32(value.addr, data2[pos + i * 4].addr)
-        w[i] = value
+    for _ in 0 ..< len1 div 64:
+      do64(src, pos, state, w)
 
-      for i in 16 ..< 64:
-        let
-          s0 =
-            rotateRightBits(w[i - 15], 7) xor
-            rotateRightBits(w[i - 15], 18) xor
-            (w[i - 15] shr 3)
-          s1 =
-            rotateRightBits(w[i - 2], 17) xor
-            rotateRightBits(w[i - 2], 19) xor
-            (w[i - 2] shr 10)
-        w[i] = w[i - 16] + s0 + w[i - 7] + s1
-
-      var
-        a = state[0]
-        b = state[1]
-        c = state[2]
-        d = state[3]
-        e = state[4]
-        f = state[5]
-        g = state[6]
-        h = state[7]
-      for i in 0 ..< 64:
-        let
-          S1 =
-            rotateRightBits(e, 6) xor
-            rotateRightBits(e, 11) xor
-            rotateRightBits(e, 25)
-          ch = (e and f) xor ((not e) and g)
-          temp1 = h + S1 + ch + k[i] + w[i]
-          S0 =
-            rotateRightBits(a, 2) xor
-            rotateRightBits(a, 13) xor
-            rotateRightBits(a, 22)
-          maj = (a and b) xor (a and c) xor (b and c)
-          temp2 = S0 + maj
-        h = g
-        g = f
-        f = e
-        e = d + temp1
-        d = c
-        c = b
-        b = a
-        a = temp1 + temp2
-
-      state[0] += a
-      state[1] += b
-      state[2] += c
-      state[3] += d
-      state[4] += e
-      state[5] += f
-      state[6] += g
-      state[7] += h
-      pos += 64
+    # Last 128 bytes
+    var tmp = 0
+    if len2 == 128:
+      do64(cast[ptr UncheckedArray[uint8]](last128[0].addr), tmp, state, w)
+    do64(cast[ptr UncheckedArray[uint8]](last128[0].addr), tmp, state, w)
 
   for i in 0 ..< state.len:
     swapEndian32(result[i * 4].addr, state[i].addr)
