@@ -259,8 +259,8 @@ proc pbkdf2*(password, salt: string, iterations: int): array[32, uint8] =
     for i in 0 ..< 32:
       result[i] = result[i] xor buf1[i]
 
-proc toHex*(a: array[32, uint8]): string =
-  result = newStringOfCap(64)
+proc toHex*(a: openarray[uint8]): string =
+  result = newStringOfCap(a.len)
   for i in 0 ..< a.len:
     result.add toHex(a[i], 2)
   result = result.toLowerAscii()
