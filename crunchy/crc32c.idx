@@ -1,3 +1,5 @@
-crc32c	crunchy/crc32c.html#crc32c,pointer,int	crc32c: crc32c(src: pointer; len: int): uint32	
-crc32c	crunchy/crc32c.html#crc32c,openArray[byte]	crc32c: crc32c(data: openArray[byte]): uint32	
-crc32c	crunchy/crc32c.html#crc32c,string	crc32c: crc32c(data: string): uint32	
+nimTitle	crc32c	crunchy/crc32c.html	module src/crunchy/crc32c		0
+nim	crc32c	crunchy/crc32c.html#crc32c,pointer,int	proc crc32c(src: pointer; len: int): uint32		7
+nim	crc32c	crunchy/crc32c.html#crc32c,openArray[byte]	proc crc32c(data: openArray[byte]): uint32		10
+nim	crc32c	crunchy/crc32c.html#crc32c,string	proc crc32c(data: string): uint32		16
+nimgrp	crc32c	crunchy/crc32c.html#crc32c-procs-all	proc		7

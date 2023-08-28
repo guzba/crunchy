@@ -1,3 +1,5 @@
-adler32	crunchy/adler32.html#adler32,pointer,int	adler32: adler32(src: pointer; len: int): uint32	
-adler32	crunchy/adler32.html#adler32,openArray[byte]	adler32: adler32(data: openArray[byte]): uint32	
-adler32	crunchy/adler32.html#adler32,string	adler32: adler32(data: string): uint32	
+nimTitle	adler32	crunchy/adler32.html	module src/crunchy/adler32		0
+nim	adler32	crunchy/adler32.html#adler32,pointer,int	proc adler32(src: pointer; len: int): uint32		12
+nim	adler32	crunchy/adler32.html#adler32,openArray[byte]	proc adler32(data: openArray[byte]): uint32		68
+nim	adler32	crunchy/adler32.html#adler32,string	proc adler32(data: string): uint32		74
+nimgrp	adler32	crunchy/adler32.html#adler32-procs-all	proc		12

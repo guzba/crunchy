@@ -1,9 +1,12 @@
-sha256	crunchy/sha256.html#sha256,pointer,int	sha256: sha256(src: pointer; len: int): array[32, uint8]	
-sha256	crunchy/sha256.html#sha256,openArray[byte]	sha256: sha256(data: openArray[byte]): array[32, uint8]	
-sha256	crunchy/sha256.html#sha256,string	sha256: sha256(data: string): array[32, uint8]	
-hmacSha256	crunchy/sha256.html#hmacSha256,openArray[uint8],openArray[uint8]	sha256: hmacSha256(key, data: openArray[uint8]): array[32, uint8]	
-hmacSha256	crunchy/sha256.html#hmacSha256,string,string	sha256: hmacSha256(key, data: string): array[32, uint8]	
-hmacSha256	crunchy/sha256.html#hmacSha256,string,openArray[byte]	sha256: hmacSha256(key: string; data: openArray[byte]): array[32, uint8]	
-hmacSha256	crunchy/sha256.html#hmacSha256,openArray[byte],string	sha256: hmacSha256(key: openArray[byte]; data: string): array[32, uint8]	
-pbkdf2	crunchy/sha256.html#pbkdf2,string,string,int	sha256: pbkdf2(password, salt: string; iterations: int): array[32, uint8]	
-toHex	crunchy/sha256.html#toHex,openArray[uint8]	sha256: toHex(a: openArray[uint8]): string	
+nimTitle	sha256	crunchy/sha256.html	module src/crunchy/sha256		0
+nim	sha256	crunchy/sha256.html#sha256,pointer,int	proc sha256(src: pointer; len: int): array[32, uint8]		108
+nim	sha256	crunchy/sha256.html#sha256,openArray[byte]	proc sha256(data: openArray[byte]): array[32, uint8]		173
+nim	sha256	crunchy/sha256.html#sha256,string	proc sha256(data: string): array[32, uint8]		179
+nim	hmacSha256	crunchy/sha256.html#hmacSha256,openArray[uint8],openArray[uint8]	proc hmacSha256(key, data: openArray[uint8]): array[32, uint8]		182
+nim	hmacSha256	crunchy/sha256.html#hmacSha256,string,string	proc hmacSha256(key, data: string): array[32, uint8]		219
+nim	hmacSha256	crunchy/sha256.html#hmacSha256,string,openArray[byte]	proc hmacSha256(key: string; data: openArray[byte]): array[32, uint8]		227
+nim	hmacSha256	crunchy/sha256.html#hmacSha256,openArray[byte],string	proc hmacSha256(key: openArray[byte]; data: string): array[32, uint8]		236
+nim	pbkdf2	crunchy/sha256.html#pbkdf2,string,string,int	proc pbkdf2(password, salt: string; iterations: int): array[32, uint8]		245
+nim	toHex	crunchy/sha256.html#toHex,openArray[uint8]	proc toHex(a: openArray[uint8]): string		262
+nimgrp	hmacsha256	crunchy/sha256.html#hmacSha256-procs-all	proc		182
+nimgrp	sha256	crunchy/sha256.html#sha256-procs-all	proc		108

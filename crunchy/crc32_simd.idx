@@ -1,1 +1,2 @@
-crc32_sse41_pcmul	crunchy/crc32_simd.html#crc32_sse41_pcmul,pointer,int,uint32	crc32_simd: crc32_sse41_pcmul(src: pointer; len: int; crc32: uint32): uint32	
+nimTitle	crc32_simd	crunchy/crc32_simd.html	module src/crunchy/crc32_simd		0
+nim	crc32_sse41_pcmul	crunchy/crc32_simd.html#crc32_sse41_pcmul,pointer,int,uint32	proc crc32_sse41_pcmul(src: pointer; len: int; crc32: uint32): uint32		22

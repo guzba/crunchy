@@ -1,1 +1,2 @@
-crc32c_sse42	crunchy/crc32c_simd.html#crc32c_sse42,pointer,int	crc32c_simd: crc32c_sse42(src: pointer; len: int): uint32	
+nimTitle	crc32c_simd	crunchy/crc32c_simd.html	module src/crunchy/crc32c_simd		0
+nim	crc32c_sse42	crunchy/crc32c_simd.html#crc32c_sse42,pointer,int	proc crc32c_sse42(src: pointer; len: int): uint32		10

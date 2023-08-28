@@ -1,1 +1,2 @@
-x64sha256	crunchy/sha256_simd.html#x64sha256,array[,uint32],ptr.UncheckedArray[uint8],int,ptr.UncheckedArray[uint8],int	sha256_simd: x64sha256(state: var array[8, uint32]; src1: ptr UncheckedArray[uint8];\n          len1: int; src2: ptr UncheckedArray[uint8]; len2: int)	
+nimTitle	sha256_simd	crunchy/sha256_simd.html	module src/crunchy/sha256_simd		0
+nim	x64sha256	crunchy/sha256_simd.html#x64sha256,array[,uint32],ptr.UncheckedArray[uint8],int,ptr.UncheckedArray[uint8],int	proc x64sha256(state: var array[8, uint32]; src1: ptr UncheckedArray[uint8];\n          len1: int; src2: ptr UncheckedArray[uint8]; len2: int)		187

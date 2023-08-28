@@ -1,1 +1,2 @@
-allowSimd	crunchy/internal.html#allowSimd	internal: allowSimd	
+nimTitle	internal	crunchy/internal.html	module src/crunchy/internal		0
+nim	allowSimd	crunchy/internal.html#allowSimd	const allowSimd		1
