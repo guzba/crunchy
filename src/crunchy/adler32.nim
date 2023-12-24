@@ -14,7 +14,7 @@ proc adler32*(src: pointer, len: int): uint32 =
 
   when allowSimd:
     when defined(amd64):
-      if checkInstructionSets({SSE3}):
+      if checkInstructionSets({SSSE3}):
         return adler32_ssse3(src, len)
     elif defined(arm64):
       return adler32_neon(src, len)
