@@ -21,7 +21,7 @@
   <div class="document" id="documentId">
     <div class="container">
       <h1 class="title">Index</h1>
-      Modules: <a href="crunchy.html">crunchy</a>, <a href="crunchy/adler32.html">crunchy/adler32</a>, <a href="crunchy/adler32_simd.html">crunchy/adler32_simd</a>, <a href="crunchy/common.html">crunchy/common</a>, <a href="crunchy/crc32.html">crunchy/crc32</a>, <a href="crunchy/crc32_simd.html">crunchy/crc32_simd</a>, <a href="crunchy/crc32c.html">crunchy/crc32c</a>, <a href="crunchy/crc32c_simd.html">crunchy/crc32c_simd</a>, <a href="crunchy/internal.html">crunchy/internal</a>, <a href="crunchy/sha256.html">crunchy/sha256</a>, <a href="crunchy/sha256_simd.html">crunchy/sha256_simd</a>.<br/><p /><h2>API symbols</h2>
+      Modules: <a href="crunchy.html">crunchy</a>, <a href="crunchy/adler32.html">crunchy/adler32</a>, <a href="crunchy/adler32_simd.html">crunchy/adler32_simd</a>, <a href="crunchy/common.html">crunchy/common</a>, <a href="crunchy/crc32.html">crunchy/crc32</a>, <a href="crunchy/crc32_simd.html">crunchy/crc32_simd</a>, <a href="crunchy/crc32c.html">crunchy/crc32c</a>, <a href="crunchy/crc32c_simd.html">crunchy/crc32c_simd</a>, <a href="crunchy/internal.html">crunchy/internal</a>, <a href="crunchy/sha1.html">crunchy/sha1</a>, <a href="crunchy/sha256.html">crunchy/sha256</a>, <a href="crunchy/sha256_simd.html">crunchy/sha256_simd</a>.<br/><p /><h2>API symbols</h2>
 <dl><dt><a name="adler32" href="#adler32"><span>adler32:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="adler32: proc adler32(data: openArray[byte]): uint32" href="crunchy/adler32.html#adler32%2CopenArray%5Bbyte%5D">adler32: proc adler32(data: openArray[byte]): uint32</a></li>
@@ -80,6 +80,14 @@
 <li><a class="reference external"
           data-doc-search-tag="sha256: proc pbkdf2(password, salt: string; iterations: int): array[32, uint8]" href="crunchy/sha256.html#pbkdf2%2Cstring%2Cstring%2Cint">sha256: proc pbkdf2(password, salt: string; iterations: int): array[32, uint8]</a></li>
           </ul></dd>
+<dt><a name="sha1" href="#sha1"><span>sha1:</span></a></dt><dd><ul class="simple">
+<li><a class="reference external"
+          data-doc-search-tag="sha1: proc sha1(data: openArray[byte]): array[20, uint8]" href="crunchy/sha1.html#sha1%2CopenArray%5Bbyte%5D">sha1: proc sha1(data: openArray[byte]): array[20, uint8]</a></li>
+          <li><a class="reference external"
+          data-doc-search-tag="sha1: proc sha1(src: pointer; len: int): array[20, uint8]" href="crunchy/sha1.html#sha1%2Cpointer%2Cint">sha1: proc sha1(src: pointer; len: int): array[20, uint8]</a></li>
+          <li><a class="reference external"
+          data-doc-search-tag="sha1: proc sha1(data: string): array[20, uint8]" href="crunchy/sha1.html#sha1%2Cstring">sha1: proc sha1(data: string): array[20, uint8]</a></li>
+          </ul></dd>
 <dt><a name="sha256" href="#sha256"><span>sha256:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
           data-doc-search-tag="sha256: proc sha256(data: openArray[byte]): array[32, uint8]" href="crunchy/sha256.html#sha256%2CopenArray%5Bbyte%5D">sha256: proc sha256(data: openArray[byte]): array[32, uint8]</a></li>
@@ -90,7 +98,7 @@
           </ul></dd>
 <dt><a name="toHex" href="#toHex"><span>toHex:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
-          data-doc-search-tag="sha256: proc toHex(a: openArray[uint8]): string" href="crunchy/sha256.html#toHex%2CopenArray%5Buint8%5D">sha256: proc toHex(a: openArray[uint8]): string</a></li>
+          data-doc-search-tag="common: proc toHex(a: openArray[uint8]): string" href="crunchy/common.html#toHex%2CopenArray%5Buint8%5D">common: proc toHex(a: openArray[uint8]): string</a></li>
           </ul></dd>
 <dt><a name="x64sha256" href="#x64sha256"><span>x64sha256:</span></a></dt><dd><ul class="simple">
 <li><a class="reference external"
@@ -102,7 +110,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2023-12-26 19:48:20 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2024-01-26 03:19:33 UTC</small>
       </div>
     </div>
   </div>

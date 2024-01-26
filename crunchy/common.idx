@@ -1,2 +1,3 @@
 nimTitle	common	crunchy/common.html	module src/crunchy/common		0
-nim	CrunchyError	crunchy/common.html#CrunchyError	object CrunchyError		1
+nim	CrunchyError	crunchy/common.html#CrunchyError	object CrunchyError		3
+nim	toHex	crunchy/common.html#toHex,openArray[uint8]	proc toHex(a: openArray[uint8]): string		5

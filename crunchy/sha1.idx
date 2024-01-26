@@ -1,0 +1,5 @@
+nimTitle	sha1	crunchy/sha1.html	module src/crunchy/sha1		0
+nim	sha1	crunchy/sha1.html#sha1,pointer,int	proc sha1(src: pointer; len: int): array[20, uint8]		78
+nim	sha1	crunchy/sha1.html#sha1,openArray[byte]	proc sha1(data: openArray[byte]): array[20, uint8]		137
+nim	sha1	crunchy/sha1.html#sha1,string	proc sha1(data: string): array[20, uint8]		143
+nimgrp	sha1	crunchy/sha1.html#sha1-procs-all	proc		78

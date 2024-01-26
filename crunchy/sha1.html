@@ -5,7 +5,7 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>src/crunchy/adler32_simd</title>
+<title>src/crunchy/sha1</title>
 
 <!-- Favicon -->
 <link rel="shortcut icon" href="data:image/x-icon;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AAAAAAUAAAAF////AP///wD///8A////AP///wD///8A////AP///wD///8A////AAAAAAIAAABbAAAAlQAAAKIAAACbAAAAmwAAAKIAAACVAAAAWwAAAAL///8A////AP///wD///8A////AAAAABQAAADAAAAAYwAAAA3///8A////AP///wD///8AAAAADQAAAGMAAADAAAAAFP///wD///8A////AP///wAAAACdAAAAOv///wD///8A////AP///wD///8A////AP///wD///8AAAAAOgAAAJ3///8A////AP///wAAAAAnAAAAcP///wAAAAAoAAAASv///wD///8A////AP///wAAAABKAAAAKP///wAAAABwAAAAJ////wD///8AAAAAgQAAABwAAACIAAAAkAAAAJMAAACtAAAAFQAAABUAAACtAAAAkwAAAJAAAACIAAAAHAAAAIH///8A////AAAAAKQAAACrAAAAaP///wD///8AAAAARQAAANIAAADSAAAARf///wD///8AAAAAaAAAAKsAAACk////AAAAADMAAACcAAAAnQAAABj///8A////AP///wAAAAAYAAAAGP///wD///8A////AAAAABgAAACdAAAAnAAAADMAAAB1AAAAwwAAAP8AAADpAAAAsQAAAE4AAAAb////AP///wAAAAAbAAAATgAAALEAAADpAAAA/wAAAMMAAAB1AAAAtwAAAOkAAAD/AAAA/wAAAP8AAADvAAAA3gAAAN4AAADeAAAA3gAAAO8AAAD/AAAA/wAAAP8AAADpAAAAtwAAAGUAAAA/AAAA3wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAAD/AAAA/wAAAP8AAADfAAAAPwAAAGX///8A////AAAAAEgAAADtAAAAvwAAAL0AAADGAAAA7wAAAO8AAADGAAAAvQAAAL8AAADtAAAASP///wD///8A////AP///wD///8AAAAAO////wD///8A////AAAAAIcAAACH////AP///wD///8AAAAAO////wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A//8AAP//AAD4HwAA7/cAAN/7AAD//wAAoYUAAJ55AACf+QAAh+EAAAAAAADAAwAA4AcAAP5/AAD//wAA//8AAA=="/>
@@ -20,7 +20,7 @@
 <body>
   <div class="document" id="documentId">
     <div class="container">
-      <h1 class="title">src/crunchy/adler32_simd</h1>
+      <h1 class="title">src/crunchy/sha1</h1>
       <div class="row">
   <div class="three columns">
     <div class="theme-select-wrapper">
@@ -48,14 +48,13 @@
     </div>
     <ul class="simple simple-toc" id="toc-list">
   <li>
-  <a class="reference reference-toplevel" href="#6" id="56">Imports</a>
-</li>
-<li>
   <details open>
     <summary><a class="reference reference-toplevel" href="#12" id="62">Procs</a></summary>
     <ul class="simple simple-toc-section">
-      <ul class="simple nested-toc-section">adler32_ssse3
-  <li><a class="reference" href="#adler32_ssse3%2Cpointer%2Cint" title="adler32_ssse3(src: pointer; len: int): uint32">adler32_ssse3(src: pointer; len: int): uint32</a></li>
+      <ul class="simple nested-toc-section">sha1
+  <li><a class="reference" href="#sha1%2CopenArray%5Bbyte%5D" title="sha1(data: openArray[byte]): array[20, uint8]">sha1(data: openArray[byte]): array[20, uint8]</a></li>
+<li><a class="reference" href="#sha1%2Cstring" title="sha1(data: string): array[20, uint8]">sha1(data: string): array[20, uint8]</a></li>
+<li><a class="reference" href="#sha1%2Cpointer%2Cint" title="sha1(src: pointer; len: int): array[20, uint8]">sha1(src: pointer; len: int): array[20, uint8]</a></li>
 
 </ul>
 
@@ -67,32 +66,46 @@
 
   </div>
   <div class="nine columns" id="content">
-    <a href="https://github.com/guzba/crunchy/tree/master/src/crunchy/adler32_simd.nim#L1" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/guzba/crunchy/edit/devel/src/crunchy/adler32_simd.nim#L1" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/guzba/crunchy/tree/master/src/crunchy/sha1.nim#L1" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/guzba/crunchy/edit/devel/src/crunchy/sha1.nim#L1" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
     <div id="tocRoot"></div>
     
-    <p class="module-desc"><p>These functions are Nim conversions of an original implementation from the Chromium repository. That implementation is:</p>
-<p>Copyright 2017 The Chromium Authors. All rights reserved. Use of this source code is governed by a BSD-style license that can be found in the Chromium source repository LICENSE file.</p>
-</p>
-    <div class="section" id="6">
-  <h1><a class="toc-backref" href="#6">Imports</a></h1>
-  <dl class="item">
-    <a class="reference external" href="common.html">common</a>
-  </dl>
-</div>
-<div class="section" id="12">
+    <p class="module-desc"></p>
+    <div class="section" id="12">
   <h1><a class="toc-backref" href="#12">Procs</a></h1>
   <dl class="item">
-    <div id="adler32_ssse3-procs-all">
-  <div id="adler32_ssse3,pointer,int">
-  <dt><pre><span class="Keyword">proc</span> <a href="#adler32_ssse3%2Cpointer%2Cint"><span class="Identifier">adler32_ssse3</span></a><span class="Other">(</span><span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">pointer</span><span class="Other">;</span> <span class="Identifier">len</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">uint32</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">CrunchyError</span><span class="Other">]</span><span class="Other">,</span>
+    <div id="sha1-procs-all">
+  <div id="sha1,openArray[byte]">
+  <dt><pre><span class="Keyword">proc</span> <a href="#sha1%2CopenArray%5Bbyte%5D"><span class="Identifier">sha1</span></a><span class="Other">(</span><span class="Identifier">data</span><span class="Other">:</span> <span class="Identifier">openArray</span><span class="Other">[</span><span class="Identifier">byte</span><span class="Other">]</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">array</span><span class="Other">[</span><span class="DecNumber">20</span><span class="Other">,</span> <span class="Identifier">uint8</span><span class="Other">]</span> {.<span class="Identifier">inline</span><span class="Other">,</span> <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span>
     <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     
-    <a href="https://github.com/guzba/crunchy/tree/master/src/crunchy/adler32_simd.nim#L23" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
-<a href="https://github.com/guzba/crunchy/edit/devel/src/crunchy/adler32_simd.nim#L23" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+    <a href="https://github.com/guzba/crunchy/tree/master/src/crunchy/sha1.nim#L137" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/guzba/crunchy/edit/devel/src/crunchy/sha1.nim#L137" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
+  </dd>
+</div>
+<div id="sha1,string">
+  <dt><pre><span class="Keyword">proc</span> <a href="#sha1%2Cstring"><span class="Identifier">sha1</span></a><span class="Other">(</span><span class="Identifier">data</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">array</span><span class="Other">[</span><span class="DecNumber">20</span><span class="Other">,</span> <span class="Identifier">uint8</span><span class="Other">]</span> {.<span class="Identifier">inline</span><span class="Other">,</span> <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    
+    <a href="https://github.com/guzba/crunchy/tree/master/src/crunchy/sha1.nim#L143" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/guzba/crunchy/edit/devel/src/crunchy/sha1.nim#L143" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
+
+  </dd>
+</div>
+<div id="sha1,pointer,int">
+  <dt><pre><span class="Keyword">proc</span> <a href="#sha1%2Cpointer%2Cint"><span class="Identifier">sha1</span></a><span class="Other">(</span><span class="Identifier">src</span><span class="Other">:</span> <span class="Identifier">pointer</span><span class="Other">;</span> <span class="Identifier">len</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">array</span><span class="Other">[</span><span class="DecNumber">20</span><span class="Other">,</span> <span class="Identifier">uint8</span><span class="Other">]</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dd>
+    
+    
+    <a href="https://github.com/guzba/crunchy/tree/master/src/crunchy/sha1.nim#L78" class="link-seesrc" target="_blank">Source</a>&nbsp;&nbsp;
+<a href="https://github.com/guzba/crunchy/edit/devel/src/crunchy/sha1.nim#L78" class="link-seesrc" target="_blank" >Edit</a>&nbsp;&nbsp;
 
   </dd>
 </div>
