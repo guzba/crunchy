@@ -17,6 +17,9 @@ when allowSimd:
 timeIt "adler32":
   discard adler32(data)
 
+timeIt "sha1":
+  discard sha1(data)
+
 timeIt "sha256":
   discard sha256(data)
 

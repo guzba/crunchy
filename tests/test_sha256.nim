@@ -1,4 +1,4 @@
-import crunchy/sha256
+import crunchy/common, crunchy/sha256
 
 const sha256Tests = [
   (
