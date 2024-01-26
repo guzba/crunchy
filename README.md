@@ -12,6 +12,7 @@ Crunchy provides pure Nim implementations of common hashes and data integrity ch
 
 Function | Scalar | SIMD: | amd64 | arm64
 ---       | ---   | ---   | ---   | ---:
+SHA-1     | ✅   |       |  ⛔   | ⛔
 SHA-256   | ✅   |       |  ✅   | ⛔
 CRC-32    | ✅   |       |  ✅   | ✅
 CRC-32C   | ⛔   |       |  ✅   | ⛔

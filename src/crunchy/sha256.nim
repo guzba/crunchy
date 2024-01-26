@@ -1,4 +1,4 @@
-import common, internal, std/endians, std/strutils
+import common, internal, std/endians
 
 when defined(clang):
   # Something is wrong with std/bitops + my Mac.
@@ -258,13 +258,6 @@ proc pbkdf2*(password, salt: string, iterations: int): array[32, uint8] =
     buf1 = hmacSha256(password, buf2)
     for i in 0 ..< 32:
       result[i] = result[i] xor buf1[i]
-
-proc toHex*(a: openarray[uint8]): string =
-  result = newStringOfCap(a.len * 2)
-  for i in 0 ..< a.len:
-    result.add toHex(a[i], 2)
-  for c in result.mitems:
-    c = toLowerAscii(c)
 
 when defined(release):
   {.pop.}
