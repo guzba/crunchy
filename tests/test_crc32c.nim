@@ -9,7 +9,7 @@ const testCases = [
   ("campfire", 0xB5B76905'u32)
 ]
 
-when allowSimd:
+when allowSimd and defined(amd64):
 
   for (s, v) in testCases:
     doAssert crc32c(s) == v

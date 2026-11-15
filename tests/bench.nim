@@ -10,7 +10,7 @@ for c in data.mitems:
 timeIt "crc32":
   discard crc32(data)
 
-when allowSimd:
+when allowSimd and defined(amd64):
   timeIt "crc32c":
     discard crc32c(data)
 
