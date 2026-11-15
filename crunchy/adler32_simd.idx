@@ -1,2 +1,2 @@
-nimTitle	adler32_simd	crunchy/adler32_simd.html	module src/crunchy/adler32_simd		0
+nimTitle	adler32_simd	crunchy/adler32_simd.html	module crunchy/adler32_simd		0
 nim	adler32_ssse3	crunchy/adler32_simd.html#adler32_ssse3,pointer,int	proc adler32_ssse3(src: pointer; len: int): uint32		23

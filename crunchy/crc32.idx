@@ -1,4 +1,4 @@
-nimTitle	crc32	crunchy/crc32.html	module src/crunchy/crc32		0
+nimTitle	crc32	crunchy/crc32.html	module crunchy/crc32		0
 nim	crc32	crunchy/crc32.html#crc32,pointer,int	proc crc32(src: pointer; len: int): uint32		54
 nim	crc32	crunchy/crc32.html#crc32,openArray[byte]	proc crc32(data: openArray[byte]): uint32		70
 nim	crc32	crunchy/crc32.html#crc32,string	proc crc32(data: string): uint32		76

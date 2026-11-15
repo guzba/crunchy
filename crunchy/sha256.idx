@@ -1,4 +1,4 @@
-nimTitle	sha256	crunchy/sha256.html	module src/crunchy/sha256		0
+nimTitle	sha256	crunchy/sha256.html	module crunchy/sha256		0
 nim	sha256	crunchy/sha256.html#sha256,pointer,int	proc sha256(src: pointer; len: int): array[32, uint8]		108
 nim	sha256	crunchy/sha256.html#sha256,openArray[byte]	proc sha256(data: openArray[byte]): array[32, uint8]		173
 nim	sha256	crunchy/sha256.html#sha256,string	proc sha256(data: string): array[32, uint8]		179
